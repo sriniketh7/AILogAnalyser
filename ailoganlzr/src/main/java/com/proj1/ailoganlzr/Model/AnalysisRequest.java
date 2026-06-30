@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class AnalysisRequest {
+public class AnalysisRequest extends TimeBaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,26 +29,13 @@ public class AnalysisRequest {
     @Column(nullable = false)
     private AnalysisStatus status;
 
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @Column(nullable = false)
-    private LocalDateTime updatedAt;
-
     @PrePersist
-    public void prePersist() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+    public void initializeStatus() {
 
-        if (this.status == null) {
-            this.status = AnalysisStatus.PENDING;
+        if (status == null) {
+            status = AnalysisStatus.PENDING;
         }
-    }
 
-    @PreUpdate
-    public void preUpdate() {
-        this.updatedAt = LocalDateTime.now();
     }
-
 
 }
