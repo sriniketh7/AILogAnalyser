@@ -1,4 +1,4 @@
-package com.proj1.ailoganlzr.DTO;
+package com.proj1.ailoganlzr.DTO.Response;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

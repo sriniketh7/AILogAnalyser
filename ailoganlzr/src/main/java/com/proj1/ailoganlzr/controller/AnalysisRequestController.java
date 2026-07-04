@@ -1,7 +1,8 @@
 package com.proj1.ailoganlzr.controller;
 
 import com.proj1.ailoganlzr.DTO.AnalysisRequestDto;
-import com.proj1.ailoganlzr.DTO.AnalysisResponseDto;
+import com.proj1.ailoganlzr.DTO.CommonResponse.ApiResponse;
+import com.proj1.ailoganlzr.DTO.Response.AnalysisResponseDto;
 import com.proj1.ailoganlzr.service.AnalysisRequestService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,11 +21,20 @@ public class AnalysisRequestController {
     private final AnalysisRequestService service;
 
     @PostMapping
-    public ResponseEntity<AnalysisResponseDto> create(
+    public ResponseEntity<ApiResponse<AnalysisResponseDto>> create(
             @Valid @RequestBody AnalysisRequestDto dto) {
 
+        AnalysisResponseDto analysisResponse = service.createAnalysisRequest(dto);
+
+        ApiResponse<AnalysisResponseDto> response =
+                new ApiResponse<>(
+                        true,
+                        "Analysis request created successfully.",
+                        analysisResponse
+                );
+
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(service.createAnalysisRequest(dto));
+                .body(response);
 
     }
 

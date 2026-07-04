@@ -1,7 +1,7 @@
 package com.proj1.ailoganlzr.service;
 
 import com.proj1.ailoganlzr.DTO.AnalysisRequestDto;
-import com.proj1.ailoganlzr.DTO.AnalysisResponseDto;
+import com.proj1.ailoganlzr.DTO.Response.AnalysisResponseDto;
 import com.proj1.ailoganlzr.Model.AnalysisRequest;
 import com.proj1.ailoganlzr.dao.AnalysisRequestRepository;
 import com.proj1.ailoganlzr.mapper.AnalysisRequestMapper;
