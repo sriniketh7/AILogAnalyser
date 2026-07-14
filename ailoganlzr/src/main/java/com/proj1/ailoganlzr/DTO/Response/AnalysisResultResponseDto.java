@@ -13,6 +13,8 @@ public class AnalysisResultResponseDto {
 
     private String status;
 
+    private String title;
+
     private String summary;
 
     private String rootCause;

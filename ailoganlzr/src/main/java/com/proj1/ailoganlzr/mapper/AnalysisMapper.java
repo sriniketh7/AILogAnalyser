@@ -11,6 +11,13 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface AnalysisMapper {
 
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "status", ignore = true)
+    @Mapping(target = "requestHash", ignore = true)
+    @Mapping(target = "analysisType", ignore = true)
+    @Mapping(target = "analysisResult", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
     AnalysisRequest toEntity(AnalysisRequestDto dto);
 
     @Mapping(source = "analysisRequest.id", target = "requestId")
