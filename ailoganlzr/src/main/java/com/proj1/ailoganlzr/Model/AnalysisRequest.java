@@ -1,16 +1,15 @@
 package com.proj1.ailoganlzr.Model;
 
 import com.proj1.ailoganlzr.enums.AnalysisStatus;
+import com.proj1.ailoganlzr.enums.AnalysisType;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "analysis_request")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class AnalysisRequest extends TimeBaseEntity {
@@ -29,12 +28,35 @@ public class AnalysisRequest extends TimeBaseEntity {
     @Column(nullable = false)
     private AnalysisStatus status;
 
+    @Column(name = "request_hash")
+    private String requestHash;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "analysis_type", nullable = false)
+    private AnalysisType analysisType;
+
+
+    @OneToOne(
+            mappedBy = "analysisRequest",
+            cascade = CascadeType.ALL,
+            fetch = FetchType.LAZY
+    )
+    private AnalysisResult analysisResult;
+
     @PrePersist
     public void initializeStatus() {
 
         if (status == null) {
             status = AnalysisStatus.PENDING;
         }
+
+    }
+
+    public void addAnalysisResult(AnalysisResult result){
+
+        this.analysisResult = result;
+
+        result.setAnalysisRequest(this);
 
     }
 
