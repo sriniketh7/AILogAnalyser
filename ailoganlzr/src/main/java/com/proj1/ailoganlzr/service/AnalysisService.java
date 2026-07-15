@@ -1,5 +1,7 @@
 package com.proj1.ailoganlzr.service;
 
+import com.proj1.ailoganlzr.AILayer.Model.AIAnalysisResponse;
+import com.proj1.ailoganlzr.AILayer.Service.Interface.AIAnalysisService;
 import com.proj1.ailoganlzr.DTO.AnalysisRequestDto;
 import com.proj1.ailoganlzr.DTO.Response.AnalysisResultResponseDto;
 import com.proj1.ailoganlzr.Model.AnalysisRequest;
@@ -21,12 +23,14 @@ public class AnalysisService implements AnalysisRequestIn {
     private final AnalysisRequestRepository requestRepository;
     private final AnalysisMapper requestMapper;
     private final AnalysisResultRepository resultRepository;
+    private final AIAnalysisService aiAnalysisService;
 
 
-    public AnalysisService(AnalysisRequestRepository requestRepository, AnalysisMapper requestMapper, AnalysisResultRepository resultRepository) {
+    public AnalysisService(AnalysisRequestRepository requestRepository, AnalysisMapper requestMapper, AnalysisResultRepository resultRepository, AIAnalysisService aiAnalysisService) {
         this.requestRepository = requestRepository;
         this.requestMapper = requestMapper;
         this.resultRepository = resultRepository;
+        this.aiAnalysisService = aiAnalysisService;
     }
 
 
@@ -45,23 +49,15 @@ public class AnalysisService implements AnalysisRequestIn {
 
         request.setStatus(AnalysisStatus.PENDING);
 
+        request = requestRepository.save(request);
 
-        AnalysisResult result = new AnalysisResult();
+        AIAnalysisResponse aiResponse =
+                aiAnalysisService.analyzeStackTrace(
+                        request.getRawLog()
+                );
 
-        result.setSummary("AI Integration Pending");
 
-        result.setRootCause("To be generated");
-
-        result.setSolution("To be generated");
-
-        result.setConfidence(0);
-
-        result.setAiModel("Dummy");
-
-        result.setProcessingTimeMs(0L);
-
-        result.setCached(false);
-
+        AnalysisResult result = buildAnalysisResult(aiResponse);
         // Link Both Sides
         request.addAnalysisResult(result);
 
@@ -73,5 +69,20 @@ public class AnalysisService implements AnalysisRequestIn {
 
         return requestMapper.toResponseDto(result);
 
+    }
+
+    private AnalysisResult buildAnalysisResult(AIAnalysisResponse aiResponse) {
+
+        AnalysisResult result = new AnalysisResult();
+
+        result.setSummary(aiResponse.getSummary());
+        result.setRootCause(aiResponse.getRootCause());
+        result.setSolution(aiResponse.getSolution());
+        result.setConfidence(aiResponse.getConfidence());
+
+        result.setAiModel("gemini-2.5-flash");
+        result.setCached(false);
+
+        return result;
     }
 }

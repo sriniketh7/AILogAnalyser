@@ -7,11 +7,15 @@ public final class AiConstants {
     public static final String SYSTEM_PROMPT = """
             You are an engineer.
             Analyze the provided stack trace carefully.
-            Return:
-            1. Summary
-            2. Root Cause
-            3. Solution
-            4. Confidence Score (0-100)
+            Return Only Valid JSON.
+            {
+            "summary": "Brief description of the issue",
+            "rootCause": "Identified root cause",
+            "solution": "Proposed solution",
+            "confidence": 0-100
+            }
+            Stack Trace:
+            <rawLog>
             Keep the response concise and technical.
             """;
 }

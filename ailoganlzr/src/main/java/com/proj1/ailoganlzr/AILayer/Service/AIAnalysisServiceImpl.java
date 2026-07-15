@@ -5,7 +5,9 @@ import com.proj1.ailoganlzr.AILayer.Parser.AiParser;
 import com.proj1.ailoganlzr.AILayer.Service.Interface.AIAnalysisService;
 import com.proj1.ailoganlzr.AILayer.prompt.PromptBuilder;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.stereotype.Service;
 
+@Service
 public class AIAnalysisServiceImpl implements AIAnalysisService {
 
     private final ChatClient chatClient;
@@ -22,6 +24,14 @@ public class AIAnalysisServiceImpl implements AIAnalysisService {
 
     @Override
     public AIAnalysisResponse analyzeStackTrace(String rawLog) {
-        return null;
+
+        String prompt = promptBuilder.buildStackTracePrompt(rawLog);
+
+        AIAnalysisResponse aiResponse = chatClient
+                .prompt(prompt)
+                .call()
+                .entity(AIAnalysisResponse.class);
+
+        return aiResponse;
     }
 }
