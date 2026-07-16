@@ -1,7 +1,9 @@
 package com.proj1.ailoganlzr.service;
 
+import com.proj1.ailoganlzr.AILayer.Constants.AiConstants;
 import com.proj1.ailoganlzr.AILayer.Model.AIAnalysisResponse;
 import com.proj1.ailoganlzr.AILayer.Service.Interface.AIAnalysisService;
+import com.proj1.ailoganlzr.AILayer.prompt.PromptVersion;
 import com.proj1.ailoganlzr.DTO.AnalysisRequestDto;
 import com.proj1.ailoganlzr.DTO.Response.AnalysisResultResponseDto;
 import com.proj1.ailoganlzr.Model.AnalysisRequest;
@@ -84,7 +86,8 @@ public class AnalysisService implements AnalysisRequestIn {
         result.setSolution(aiResponse.getSolution());
         result.setConfidence(aiResponse.getConfidence());
 
-        result.setAiModel("gemini-2.5-flash");
+        result.setAiModel(AiConstants.DEFAULT_MODEL);
+        result.setPromptVersion(PromptVersion.VERSION);
         result.setCached(false);
         result.setProcessingTimeMs(processingTime);
 

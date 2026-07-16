@@ -4,18 +4,9 @@ public final class AiConstants {
 
     private AiConstants() {}
 
-    public static final String SYSTEM_PROMPT = """
-            You are an engineer.
-            Analyze the provided stack trace carefully.
-            Return Only Valid JSON.
-            {
-            "summary": "Brief description of the issue",
-            "rootCause": "Identified root cause",
-            "solution": "Proposed solution",
-            "confidence": 0-100
-            }
-            Stack Trace:
-            <rawLog>
-            Keep the response concise and technical.
-            """;
+    public static final String JSON_RESPONSE =
+            "Return ONLY valid JSON.";
+
+    public static final String DEFAULT_MODEL =
+            "gemini-3.1-flash-lite";
 }

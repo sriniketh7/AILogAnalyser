@@ -7,9 +7,7 @@ import org.springframework.stereotype.Component;
 public class PromptBuilder {
     public String buildStackTracePrompt(String rawLog) {
 
-        return AiConstants.SYSTEM_PROMPT +
-                "\n\nStack Trace:\n" +
-                rawLog;
+        return PromptTemplate.SYSTEM_PROMPT.formatted(rawLog);
     }
 
 }

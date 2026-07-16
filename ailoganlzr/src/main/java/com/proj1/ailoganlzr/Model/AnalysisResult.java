@@ -35,6 +35,9 @@ public class AnalysisResult extends TimeBaseEntity {
     private String aiModel;
 
     @Column(nullable = false)
+    private String promptVersion;
+
+    @Column(nullable = false)
     private Long processingTimeMs;
 
     @Column(nullable = false)
