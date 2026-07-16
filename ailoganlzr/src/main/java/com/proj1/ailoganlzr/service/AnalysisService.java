@@ -51,13 +51,17 @@ public class AnalysisService implements AnalysisRequestIn {
 
         request = requestRepository.save(request);
 
+        long start = System.currentTimeMillis();
+
         AIAnalysisResponse aiResponse =
                 aiAnalysisService.analyzeStackTrace(
                         request.getRawLog()
                 );
 
+        long end = System.currentTimeMillis();
+        long processingTime = end - start;
 
-        AnalysisResult result = buildAnalysisResult(aiResponse);
+        AnalysisResult result = buildAnalysisResult(aiResponse, processingTime);
         // Link Both Sides
         request.addAnalysisResult(result);
 
@@ -71,7 +75,7 @@ public class AnalysisService implements AnalysisRequestIn {
 
     }
 
-    private AnalysisResult buildAnalysisResult(AIAnalysisResponse aiResponse) {
+    private AnalysisResult buildAnalysisResult(AIAnalysisResponse aiResponse, long processingTime) {
 
         AnalysisResult result = new AnalysisResult();
 
@@ -82,6 +86,7 @@ public class AnalysisService implements AnalysisRequestIn {
 
         result.setAiModel("gemini-2.5-flash");
         result.setCached(false);
+        result.setProcessingTimeMs(processingTime);
 
         return result;
     }
