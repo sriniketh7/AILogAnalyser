@@ -1,7 +1,6 @@
 package com.proj1.ailoganlzr.mapper;
 
 import com.proj1.ailoganlzr.DTO.AnalysisRequestDto;
-import com.proj1.ailoganlzr.DTO.Response.AnalysisResponseDto;
 import com.proj1.ailoganlzr.DTO.Response.AnalysisResultResponseDto;
 import com.proj1.ailoganlzr.Model.AnalysisRequest;
 import com.proj1.ailoganlzr.Model.AnalysisResult;
