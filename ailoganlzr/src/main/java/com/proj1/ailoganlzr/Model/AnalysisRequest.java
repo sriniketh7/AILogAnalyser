@@ -5,6 +5,8 @@ import com.proj1.ailoganlzr.enums.AnalysisType;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 
 @Entity
 @Table(name = "analysis_request")
@@ -34,6 +36,13 @@ public class AnalysisRequest extends TimeBaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "analysis_type", nullable = false)
     private AnalysisType analysisType;
+
+
+    @Column(name = "failure_reason", columnDefinition = "TEXT")
+    private String failureReason;
+
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
 
 
     @OneToOne(

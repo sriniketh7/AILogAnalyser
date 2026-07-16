@@ -18,6 +18,8 @@ public interface AnalysisMapper {
     @Mapping(target = "analysisResult", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "failureReason", ignore = true)
+    @Mapping(target = "completedAt", ignore = true)
     AnalysisRequest toEntity(AnalysisRequestDto dto);
 
     @Mapping(source = "analysisRequest.id", target = "requestId")
