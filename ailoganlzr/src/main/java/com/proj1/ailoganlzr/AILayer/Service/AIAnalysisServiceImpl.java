@@ -4,9 +4,12 @@ import com.proj1.ailoganlzr.AILayer.Model.AIAnalysisResponse;
 import com.proj1.ailoganlzr.AILayer.Parser.AiParser;
 import com.proj1.ailoganlzr.AILayer.Service.Interface.AIAnalysisService;
 import com.proj1.ailoganlzr.AILayer.prompt.PromptBuilder;
+import com.proj1.ailoganlzr.exception.AIAnalysisException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 public class AIAnalysisServiceImpl implements AIAnalysisService {
 
@@ -26,12 +29,13 @@ public class AIAnalysisServiceImpl implements AIAnalysisService {
     public AIAnalysisResponse analyzeStackTrace(String rawLog) {
 
         String prompt = promptBuilder.buildStackTracePrompt(rawLog);
-
-        AIAnalysisResponse aiResponse = chatClient
-                .prompt(prompt)
-                .call()
-                .entity(AIAnalysisResponse.class);
-
-        return aiResponse;
+        try{
+            log.info("Analyzing stack trace for raw log: {}", rawLog);
+            return chatClient.prompt(prompt).user(rawLog).call().entity(AIAnalysisResponse.class);
+        }
+        catch (Exception e) {
+            log.error("Error occurred while analyzing stack trace for raw log: {}", rawLog, e);
+            throw new AIAnalysisException("Failed to analyze stack trace", e);
+        }
     }
 }

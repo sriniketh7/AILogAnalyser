@@ -10,16 +10,19 @@ import com.proj1.ailoganlzr.Model.AnalysisRequest;
 import com.proj1.ailoganlzr.Model.AnalysisResult;
 import com.proj1.ailoganlzr.dao.AnalysisRequestRepository;
 import com.proj1.ailoganlzr.enums.AnalysisStatus;
+import com.proj1.ailoganlzr.exception.AIAnalysisException;
 import com.proj1.ailoganlzr.mapper.AnalysisMapper;
 import com.proj1.ailoganlzr.service.Interface.AnalysisRequestIn;
 import jakarta.transaction.Transactional;
 import com.proj1.ailoganlzr.enums.AnalysisType;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
+@Slf4j
 public class AnalysisService implements AnalysisRequestIn {
 
     private final AnalysisRequestRepository requestRepository;
@@ -41,7 +44,7 @@ public class AnalysisService implements AnalysisRequestIn {
 
         // DTO -> Entity
         AnalysisRequest request = requestMapper.toEntity(requestDto);
-
+        log.info("Converted analysis request to entity: {}", request);
 
         request.setRequestHash(UUID.randomUUID().toString());
 
@@ -49,14 +52,19 @@ public class AnalysisService implements AnalysisRequestIn {
 
         request.setStatus(AnalysisStatus.PENDING);
 
+
         request = requestRepository.save(request);
+
+        log.info("request is saved to database with status PENDING and requestHash: {}", request.getRequestHash());
 
         long start = System.currentTimeMillis();
         AIAnalysisResponse aiResponse;
         try {
+            log.info("Starting AI analysis for request with ID: {}", request.getId());
             aiResponse = aiAnalysisService.analyzeStackTrace(request.getRawLog());
         }
         catch (Exception e) {
+            log.error("Error occurred while analyzing request with ID: {}", request.getId(), e);
             request.setStatus(AnalysisStatus.FAILED);
             String message = e.getMessage();
             request.setFailureReason(
@@ -64,7 +72,7 @@ public class AnalysisService implements AnalysisRequestIn {
             );
             request.setCompletedAt(LocalDateTime.now());
             requestRepository.save(request);
-            throw e;
+            throw new AIAnalysisException("AI analysis failed for request with ID: " + request.getId(), e);
         }
 
         long end = System.currentTimeMillis();
@@ -77,6 +85,8 @@ public class AnalysisService implements AnalysisRequestIn {
         request.setStatus(AnalysisStatus.COMPLETED);
         request.setCompletedAt(LocalDateTime.now());
         requestRepository.save(request);
+
+        log.info("Analysis Completed and saved to database with status COMPLETED for request with ID: {}", request.getId());
 
         return requestMapper.toResponseDto(result);
 
