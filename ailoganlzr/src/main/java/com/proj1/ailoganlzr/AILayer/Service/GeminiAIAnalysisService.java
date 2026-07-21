@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
-public class AIAnalysisServiceImpl implements AIAnalysisService {
+public class GeminiAIAnalysisService implements AIAnalysisService {
 
     private final ChatClient chatClient;
 
@@ -19,7 +19,7 @@ public class AIAnalysisServiceImpl implements AIAnalysisService {
 
     private final AiParser parser;
 
-    public AIAnalysisServiceImpl(ChatClient chatClient, PromptBuilder promptBuilder, AiParser parser) {
+    public GeminiAIAnalysisService(ChatClient chatClient, PromptBuilder promptBuilder, AiParser parser) {
         this.chatClient = chatClient;
         this.promptBuilder = promptBuilder;
         this.parser = parser;
