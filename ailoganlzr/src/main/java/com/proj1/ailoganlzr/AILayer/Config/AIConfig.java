@@ -21,9 +21,4 @@ public class AIConfig {
                 .build();
     }
 
-    @Bean
-    public VectorStore vectorStore() {
-        return new VectorStore.Builder()
-                .build();
-    }
 }
