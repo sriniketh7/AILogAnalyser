@@ -4,5 +4,5 @@ public final class PromptVersion {
 
     private PromptVersion() {}
 
-    public static final String VERSION = "v1.0";
+    public static final String VERSION = "v2.0";
 }

@@ -1,8 +1,10 @@
 package com.proj1.ailoganlzr.AILayer.rag;
 
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
+import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
 
@@ -42,5 +44,23 @@ public class RAGService {
 
         log.info("Successfully stored {} chunks into PGVector.", chunks.size());
 
+    }
+
+    public List<Document> retrieveRelevantDocuments(String stackstrace) {
+        SearchRequest searchRequest = SearchRequest.builder().query(stackstrace).topK(3).build();
+        List<Document> documents = vectorStore.similaritySearch(searchRequest);
+        log.info("Retrieved {} relevant documents from PGVector.", documents.size());
+
+        for (int i = 0; i < documents.size(); i++) {
+
+            Document document = documents.get(i);
+
+            log.info("============== Retrieved Document {} ==============", i + 1);
+
+            log.info("Content:\n{}", document.getText());
+
+            log.info("Metadata: {}", document.getMetadata());
+        }
+        return documents;
     }
 }
