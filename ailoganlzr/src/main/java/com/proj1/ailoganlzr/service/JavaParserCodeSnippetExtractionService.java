@@ -12,9 +12,7 @@ import com.github.javaparser.ast.CompilationUnit;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 
 @Service
@@ -83,8 +81,28 @@ public class JavaParserCodeSnippetExtractionService implements CodeSnippetExtrac
 
         List<CodeSnippet> snippets = new ArrayList<>();
 
+        Set<String> visited = new HashSet<>();
+
+        final int MAX_SNIPPETS = 5;
+
         for (StackFrame frame : frames) {
-            extractSnippet(frame).ifPresent(snippets::add);
+
+            if (snippets.size() >= MAX_SNIPPETS) {
+                break;
+            }
+
+            Optional<CodeSnippet> snippet = extractSnippet(frame);
+
+            snippet.ifPresent(code -> {
+
+                String key = code.getFullyQualifiedClassName()
+                        + "#" + code.getMethodName();
+
+                if (visited.add(key)) {
+                    snippets.add(code);
+                }
+
+            });
         }
 
         return snippets;

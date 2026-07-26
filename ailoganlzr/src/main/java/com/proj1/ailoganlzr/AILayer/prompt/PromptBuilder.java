@@ -4,9 +4,16 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class PromptBuilder {
-    public String buildStackTracePrompt(String rawLog, String retrievedKnowledge) {
+    public String buildStackTracePrompt(String rawLog,
+                                        String retrievedKnowledge,
+                                        String codeSnippetContext) {
 
-        return PromptTemplate.SYSTEM_PROMPT.formatted(retrievedKnowledge, rawLog);
+        return String.format(
+                PromptTemplate.SYSTEM_PROMPT,
+                rawLog,
+                retrievedKnowledge,
+                codeSnippetContext
+        );
     }
 
 }
