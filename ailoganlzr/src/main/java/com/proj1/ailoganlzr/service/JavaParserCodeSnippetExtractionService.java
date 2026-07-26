@@ -4,23 +4,27 @@ import com.github.javaparser.ast.body.MethodDeclaration;
 import com.proj1.ailoganlzr.DTO.CodeSnippet;
 import com.proj1.ailoganlzr.DTO.StackFrame;
 import com.proj1.ailoganlzr.locator.SourceFileLocator;
-import com.proj1.ailoganlzr.service.Interface.CodeSnippetServiceIn;
+import com.proj1.ailoganlzr.service.Interface.CodeSnippetExtractionService;
+import com.proj1.ailoganlzr.service.Interface.StackTraceParser;
 import org.springframework.stereotype.Service;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 
 @Service
-public class JavaParserCodeSnippetService implements CodeSnippetServiceIn {
+public class JavaParserCodeSnippetExtractionService implements CodeSnippetExtractionService {
 
     private final SourceFileLocator sourceFileLocator;
+    private final StackTraceParser stackTraceParser;
 
-    public JavaParserCodeSnippetService(SourceFileLocator sourceFileLocator) {
+    public JavaParserCodeSnippetExtractionService(SourceFileLocator sourceFileLocator,StackTraceParser stackTraceParser) {
+        this.stackTraceParser = stackTraceParser;
         this.sourceFileLocator = sourceFileLocator;
     }
 
@@ -72,4 +76,19 @@ public class JavaParserCodeSnippetService implements CodeSnippetServiceIn {
 
         return Optional.empty();
     }
+
+    @Override
+    public List<CodeSnippet> extractSnippets(String stackTrace) {
+        List<StackFrame> frames = stackTraceParser.parseStackTrace(stackTrace);
+
+        List<CodeSnippet> snippets = new ArrayList<>();
+
+        for (StackFrame frame : frames) {
+            extractSnippet(frame).ifPresent(snippets::add);
+        }
+
+        return snippets;
+    }
+
+
 }
