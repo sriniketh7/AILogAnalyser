@@ -45,7 +45,6 @@ public class GeminiAIAnalysisService implements AIAnalysisService {
                 ragService.retrieveRelevantDocuments(rawLog);
 
 
-
         String retrievedKnowledge = documents.stream()
                 .map(Document::getText)
                 .collect(Collectors.joining("\n\n--------------------\n\n"));
@@ -85,25 +84,84 @@ public class GeminiAIAnalysisService implements AIAnalysisService {
 
         for (CodeSnippet snippet : snippets) {
 
-            builder.append("Class: ")
+            builder.append("Package:\n")
+                    .append(snippet.getPackageName())
+                    .append("\n\n");
+
+            builder.append("Class:\n")
+                    .append(snippet.getClassName())
+                    .append("\n\n");
+
+            builder.append("Class Modifiers:\n");
+            if (snippet.getClassModifiers().isEmpty()) {
+                builder.append("None\n");
+            } else {
+                snippet.getClassModifiers().forEach(modifier ->
+                        builder.append(modifier).append("\n"));
+            }
+
+            builder.append("\n");
+
+            builder.append("Implemented Interfaces:\n");
+            if (snippet.getImplementedInterfaces().isEmpty()) {
+                builder.append("None\n");
+            } else {
+                snippet.getImplementedInterfaces().forEach(interfaceName ->
+                        builder.append(interfaceName).append("\n"));
+            }
+
+            builder.append("\n");
+            builder.append("Super Class:\n")
+                    .append(snippet.getSuperClass() != null ? snippet.getSuperClass() : "None")
+                    .append("\n\n");
+
+            builder.append("Fully Qualified Class:\n")
                     .append(snippet.getFullyQualifiedClassName())
-                    .append("\n");
+                    .append("\n\n");
 
-            builder.append("Method: ")
+            builder.append("Annotations:\n");
+
+            snippet.getClassAnnotations().forEach(annotation ->
+                    builder.append("@")
+                            .append(annotation)
+                            .append("\n")
+            );
+
+            builder.append("\n");
+
+            builder.append("Fields:\n");
+
+            if (snippet.getFields().isEmpty()) {
+                builder.append("None\n");
+            } else {
+                snippet.getFields()
+                        .forEach(field -> builder.append(field).append("\n"));
+            }
+
+            builder.append("\n");
+
+            builder.append("Constructor:\n")
+                    .append(
+                            snippet.getConstructorCode().isBlank()
+                                    ? "None"
+                                    : snippet.getConstructorCode()
+                    )
+                    .append("\n\n");
+
+            builder.append("Method:\n")
                     .append(snippet.getMethodName())
-                    .append("\n");
+                    .append("\n\n");
 
-            builder.append("Lines: ")
+            builder.append("Line Range:\n")
                     .append(snippet.getStartLine())
                     .append(" - ")
                     .append(snippet.getEndLine())
                     .append("\n\n");
 
-            builder.append(snippet.getSourceCode());
+            builder.append("Method Source:\n")
+                    .append(snippet.getSourceCode());
 
-            builder.append("\n\n");
-            builder.append("----------------------------------------");
-            builder.append("\n\n");
+            builder.append("\n\n============================================\n\n");
         }
 
         return builder.toString();

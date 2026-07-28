@@ -1,5 +1,8 @@
 package com.proj1.ailoganlzr.service;
 
+import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.ConstructorDeclaration;
+import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.proj1.ailoganlzr.DTO.CodeSnippet;
 import com.proj1.ailoganlzr.DTO.StackFrame;
@@ -13,6 +16,7 @@ import com.github.javaparser.ast.CompilationUnit;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -49,6 +53,70 @@ public class JavaParserCodeSnippetExtractionService implements CodeSnippetExtrac
         List<MethodDeclaration> methods =
                 compilationUnit.findAll(MethodDeclaration.class);
 
+        Optional<ClassOrInterfaceDeclaration> clazz =
+                compilationUnit.findFirst(
+                        ClassOrInterfaceDeclaration.class
+                );
+
+        String packageName = compilationUnit.getPackageDeclaration()
+                .map(pd -> pd.getNameAsString())
+                .orElse("");
+
+
+        String className = clazz
+                .map(ClassOrInterfaceDeclaration::getNameAsString)
+                .orElse("");
+
+
+        List<String> classAnnotations = clazz
+                .map(c ->
+                        c.getAnnotations()
+                                .stream()
+                                .map(annotation -> annotation.getNameAsString())
+                                .collect(Collectors.toList())
+                )
+                .orElse(Collections.emptyList());
+
+
+
+        String constructorCode = clazz
+                .filter(c -> !c.getConstructors().isEmpty())
+                .map(c -> c.getConstructors().get(0).toString())
+                .orElse("");
+
+        List<String> fields = clazz
+                .map(c ->
+                        c.getFields()
+                                .stream()
+                                .map(FieldDeclaration::toString)
+                                .collect(Collectors.toList())
+                )
+                .orElse(Collections.emptyList());
+
+        List<String> modifiers = clazz
+                .map(c ->
+                        c.getModifiers()
+                                .stream()
+                                .map(modifier -> modifier.getKeyword().asString())
+                                .collect(Collectors.toList())
+                )
+                .orElse(Collections.emptyList());
+
+        List<String> interfaces = clazz
+                .map(c ->
+                        c.getImplementedTypes()
+                                .stream()
+                                .map(type -> type.getNameAsString())
+                                .collect(Collectors.toList())
+                )
+                .orElse(Collections.emptyList());
+
+        String superClass = clazz
+                .filter(c -> !c.getExtendedTypes().isEmpty())
+                .map(c -> c.getExtendedTypes().get(0).getNameAsString())
+                .orElse("");
+
+
         for (MethodDeclaration method : methods) {
 
             if (method.getBegin().isEmpty() || method.getEnd().isEmpty()) {
@@ -67,6 +135,14 @@ public class JavaParserCodeSnippetExtractionService implements CodeSnippetExtrac
                                 .startLine(startLine)
                                 .endLine(endLine)
                                 .sourceCode(method.toString())
+                                .packageName(packageName)
+                                .className(className)
+                                .classAnnotations(classAnnotations)
+                                .constructorCode(constructorCode)
+                                .fields(fields)
+                                .classModifiers(modifiers)
+                                .implementedInterfaces(interfaces)
+                                .superClass(superClass)
                                 .build()
                 );
             }

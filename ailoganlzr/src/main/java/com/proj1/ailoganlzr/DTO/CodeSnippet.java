@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -20,4 +22,20 @@ public class CodeSnippet {
     private Integer endLine;
 
     private String sourceCode;
+
+    private String packageName;
+
+    private String className;
+
+    private List<String> classAnnotations;
+
+    private String constructorCode;
+
+    private List<String> fields;
+
+    private List<String> classModifiers;
+
+    private List<String> implementedInterfaces;
+
+    private String superClass;
 }
