@@ -8,4 +8,6 @@ import java.util.Optional;
 public interface SourceFileLocator {
 
     Optional<Path> locate(StackFrame frame);
+
+    Optional<Path> locateByClassName(String fullyQualifiedClassName);
 }

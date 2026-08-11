@@ -11,4 +11,9 @@ public interface CodeSnippetExtractionService {
             StackFrame frame
     );
     List<CodeSnippet> extractSnippets(String stackTrace);
+
+    List<CodeSnippet> extractRecursively(
+            String fullyQualifiedClassName,
+            String methodName);
+
 }

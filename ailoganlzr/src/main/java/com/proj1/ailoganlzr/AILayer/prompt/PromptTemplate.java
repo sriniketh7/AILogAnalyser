@@ -40,7 +40,7 @@ public final class PromptTemplate {
     
     Always analyze evidence in the following order:
     
-    1. Relevant Source Code
+    1. Application Execution Flow
     2. Stack Trace
     3. Retrieved Knowledge Base
     
@@ -72,20 +72,22 @@ public final class PromptTemplate {
     
     Step 3
     
-    Inspect the supplied source code.
+    Inspect the supplied Application Execution Flow.
+    
+    Follow the execution from the Entry Point to the Failure Point.
     
     Understand:
-    
-    - the control flow
-    - the objects involved
-    - the statement executed at the failing line
-    - how execution reached that point
+       - how execution progresses between frames
+       - where application state changes
+       - the objects involved
+       - the statement executed at the failure point
+       - how execution reached the failure
     
     Step 4
     
-    Correlate the failing stack frame with the supplied source code.
-    
-    Determine whether the exception is directly explained by the code.
+    Correlate the Failure Point in the execution flow with the corresponding stack frame.
+
+    Determine whether the exception is directly explained by the supplied code.
     
     Step 5
     
@@ -95,6 +97,16 @@ public final class PromptTemplate {
     Use the knowledge only to explain known exception patterns.
     
     Never use it to invent project-specific facts.
+    
+    5.1
+    
+        Treat the supplied Application Execution Flow as a connected sequence of execution.
+    
+        Earlier frames explain how execution reached the failure.
+    
+        The Failure Point identifies where execution stopped.
+    
+        Do not assume that the Entry Point caused the failure.
     
     Step 6
     
@@ -194,6 +206,11 @@ public final class PromptTemplate {
     
     Return ONLY valid JSON.
     
+    
+    The summary, rootCause, and solution must be derived from the supplied evidence.
+   
+    Do not mention assumptions as facts.
+    
     Do NOT include markdown.
     
     Do NOT include explanations outside JSON.
@@ -220,8 +237,24 @@ public final class PromptTemplate {
     
     %s
     
+    
     --------------------------------------------------
-    Relevant Source Code
+            Application Execution Flow
+    --------------------------------------------------
+   
+    The following execution flow is reconstructed from the application's stack trace.
+   
+    It is ordered from the application's Entry Point to the Failure Point.
+   
+    Each frame contains:
+    
+        - runtime location
+        - class metadata
+        - constructor
+        - dependencies
+        - source code
+    
+    Analyze the execution flow sequentially.
     
     %s
     """;

@@ -51,16 +51,16 @@ public class RAGService {
         List<Document> documents = vectorStore.similaritySearch(searchRequest);
         log.info("Retrieved {} relevant documents from PGVector.", documents.size());
 
-        for (int i = 0; i < documents.size(); i++) {
-
-            Document document = documents.get(i);
-
-            log.info("============== Retrieved Document {} ==============", i + 1);
-
-            log.info("Content:\n{}", document.getText());
-
-            log.info("Metadata: {}", document.getMetadata());
-        }
+//        for (int i = 0; i < documents.size(); i++) {
+//
+//            Document document = documents.get(i);
+//
+//            log.info("============== Retrieved Document {} ==============", i + 1);
+//
+//            log.info("Content:\n{}", document.getText());
+//
+//            log.info("Metadata: {}", document.getMetadata());
+//        }
         return documents;
     }
 }

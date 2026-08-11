@@ -13,6 +13,8 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.document.Document;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -52,116 +54,180 @@ public class GeminiAIAnalysisService implements AIAnalysisService {
         List<CodeSnippet> codeSnippets =
                 codeSnippetExtractionService.extractSnippets(rawLog);
 
-        String codeSnippetContext =
-                buildCodeSnippetContext(codeSnippets);
+
+        String executionFlowContext =
+                buildExecutionFlowContext(codeSnippets);
 
         String prompt = promptBuilder.buildStackTracePrompt(
                 rawLog,
                 retrievedKnowledge,
-                codeSnippetContext
+                executionFlowContext
         );
 
         log.info("Constructed prompt for AI analysis: {}", prompt);
-        try{
+        try {
             log.info("Analyzing stack trace for raw log: {}", rawLog);
             return chatClient.prompt(prompt)
                     .call()
                     .entity(AIAnalysisResponse.class);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("Error occurred while analyzing stack trace for raw log: {}", rawLog, e);
             throw new AIAnalysisException("Failed to analyze stack trace", e);
         }
     }
 
-    private String buildCodeSnippetContext(List<CodeSnippet> snippets) {
+
+    private String buildExecutionFlowContext(List<CodeSnippet> snippets) {
 
         if (snippets.isEmpty()) {
             return "No application source code could be extracted.";
         }
 
+        List<CodeSnippet> orderedSnippets = new ArrayList<>(snippets);
+        Collections.reverse(orderedSnippets);
+
         StringBuilder builder = new StringBuilder();
 
-        for (CodeSnippet snippet : snippets) {
+        builder.append("""
+                ========================================
+                        APPLICATION EXECUTION FLOW
+                ========================================
+                
+                """);
 
-            builder.append("Package:\n")
-                    .append(snippet.getPackageName())
-                    .append("\n\n");
+        int totalFrames = orderedSnippets.size();
 
-            builder.append("Class:\n")
-                    .append(snippet.getClassName())
-                    .append("\n\n");
+        for (int i = 0; i < totalFrames; i++) {
 
-            builder.append("Class Modifiers:\n");
-            if (snippet.getClassModifiers().isEmpty()) {
-                builder.append("None\n");
+            CodeSnippet snippet = orderedSnippets.get(i);
+
+            // -------- Frame Role --------
+            String role;
+
+            if (i == 0) {
+                role = "ENTRY POINT";
+            } else if (i == totalFrames - 1) {
+                role = "FAILURE POINT";
             } else {
-                snippet.getClassModifiers().forEach(modifier ->
-                        builder.append(modifier).append("\n"));
+                role = "APPLICATION LOGIC";
             }
 
-            builder.append("\n");
+            builder.append("Frame ")
+                    .append(i + 1)
+                    .append(" of ")
+                    .append(totalFrames)
+                    .append(" (")
+                    .append(role)
+                    .append(")\n");
 
-            builder.append("Implemented Interfaces:\n");
-            if (snippet.getImplementedInterfaces().isEmpty()) {
-                builder.append("None\n");
-            } else {
-                snippet.getImplementedInterfaces().forEach(interfaceName ->
-                        builder.append(interfaceName).append("\n"));
-            }
+            builder.append("----------------------------------------\n");
 
-            builder.append("\n");
-            builder.append("Super Class:\n")
-                    .append(snippet.getSuperClass() != null ? snippet.getSuperClass() : "None")
-                    .append("\n\n");
-
-            builder.append("Fully Qualified Class:\n")
+            builder.append("Class: ")
                     .append(snippet.getFullyQualifiedClassName())
-                    .append("\n\n");
+                    .append("\n");
 
-            builder.append("Annotations:\n");
-
-            snippet.getClassAnnotations().forEach(annotation ->
-                    builder.append("@")
-                            .append(annotation)
-                            .append("\n")
-            );
-
-            builder.append("\n");
-
-            builder.append("Fields:\n");
-
-            if (snippet.getFields().isEmpty()) {
-                builder.append("None\n");
-            } else {
-                snippet.getFields()
-                        .forEach(field -> builder.append(field).append("\n"));
-            }
-
-            builder.append("\n");
-
-            builder.append("Constructor:\n")
-                    .append(
-                            snippet.getConstructorCode().isBlank()
-                                    ? "None"
-                                    : snippet.getConstructorCode()
-                    )
-                    .append("\n\n");
-
-            builder.append("Method:\n")
+            builder.append("Method: ")
                     .append(snippet.getMethodName())
-                    .append("\n\n");
+                    .append("\n");
 
-            builder.append("Line Range:\n")
+            builder.append("Executed Line: ")
+                    .append(snippet.getExecutedLine())
+                    .append("\n");
+
+            builder.append("Method Range: ")
                     .append(snippet.getStartLine())
                     .append(" - ")
                     .append(snippet.getEndLine())
                     .append("\n\n");
 
-            builder.append("Method Source:\n")
-                    .append(snippet.getSourceCode());
+            builder.append("Package:\n")
+                    .append(snippet.getPackageName())
+                    .append("\n\n");
 
-            builder.append("\n\n============================================\n\n");
+            builder.append("Modifiers:\n");
+
+            if (snippet.getClassModifiers().isEmpty()) {
+                builder.append("None\n");
+            } else {
+                snippet.getClassModifiers()
+                        .forEach(modifier ->
+                                builder.append("- ")
+                                        .append(modifier)
+                                        .append("\n"));
+            }
+
+            builder.append("\n");
+
+            builder.append("Superclass:\n")
+                    .append(snippet.getSuperClass().isBlank()
+                            ? "None"
+                            : snippet.getSuperClass())
+                    .append("\n\n");
+
+            builder.append("Implemented Interfaces:\n");
+
+            if (snippet.getImplementedInterfaces().isEmpty()) {
+                builder.append("None\n");
+            } else {
+                snippet.getImplementedInterfaces()
+                        .forEach(interfaceName ->
+                                builder.append("- ")
+                                        .append(interfaceName)
+                                        .append("\n"));
+            }
+
+            builder.append("\n");
+
+            builder.append("Annotations:\n");
+
+            if (snippet.getClassAnnotations().isEmpty()) {
+                builder.append("None\n");
+            } else {
+                snippet.getClassAnnotations()
+                        .forEach(annotation ->
+                                builder.append("@")
+                                        .append(annotation)
+                                        .append("\n"));
+            }
+
+            builder.append("\n");
+
+            builder.append("Fields / Dependencies:\n");
+
+            if (snippet.getFields().isEmpty()) {
+                builder.append("None\n");
+            } else {
+                snippet.getFields()
+                        .forEach(field ->
+                                builder.append(field)
+                                        .append("\n"));
+            }
+
+            builder.append("\n");
+
+            builder.append("Constructor:\n");
+
+            if (snippet.getConstructorCode().isBlank()) {
+                builder.append("None\n");
+            } else {
+                builder.append(snippet.getConstructorCode());
+            }
+
+            builder.append("\n\n");
+
+            builder.append("Method Source:\n");
+            builder.append(snippet.getSourceCode());
+
+            builder.append("\n\n");
+
+            if (i < totalFrames - 1) {
+                builder.append("""
+                        ========================================
+                                          ↓
+                        ========================================
+                        
+                        """);
+            }
         }
 
         return builder.toString();

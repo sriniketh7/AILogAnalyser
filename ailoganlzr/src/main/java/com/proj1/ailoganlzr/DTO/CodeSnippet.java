@@ -19,6 +19,8 @@ public class CodeSnippet {
 
     private Integer startLine;
 
+    private int executedLine;
+
     private Integer endLine;
 
     private String sourceCode;
@@ -38,4 +40,8 @@ public class CodeSnippet {
     private List<String> implementedInterfaces;
 
     private String superClass;
+
+    private List<MethodInvocationInfo> methodInvocations;
+
+    private List<ResolvedMethodInvocation> resolvedMethodInvocations;
 }

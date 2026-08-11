@@ -1,14 +1,11 @@
 package com.proj1.ailoganlzr.service;
 
+import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
-import com.github.javaparser.ast.body.ConstructorDeclaration;
-import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
-import com.proj1.ailoganlzr.DTO.CodeSnippet;
-import com.proj1.ailoganlzr.DTO.StackFrame;
+import com.proj1.ailoganlzr.DTO.*;
 import com.proj1.ailoganlzr.locator.SourceFileLocator;
-import com.proj1.ailoganlzr.service.Interface.CodeSnippetExtractionService;
-import com.proj1.ailoganlzr.service.Interface.StackTraceParser;
+import com.proj1.ailoganlzr.service.Interface.*;
 import org.springframework.stereotype.Service;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
@@ -16,144 +13,88 @@ import com.github.javaparser.ast.CompilationUnit;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.stream.Collectors;
-
 
 @Service
 public class JavaParserCodeSnippetExtractionService implements CodeSnippetExtractionService {
 
     private final SourceFileLocator sourceFileLocator;
     private final StackTraceParser stackTraceParser;
+    private final MethodInvocationExtractor methodInvocationExtractor;
+    private final CodeSnippetBuilder codeSnippetBuilder;
+    private final MethodInvocationResolver methodInvocationResolver;
 
-    public JavaParserCodeSnippetExtractionService(SourceFileLocator sourceFileLocator,StackTraceParser stackTraceParser) {
+    public JavaParserCodeSnippetExtractionService(SourceFileLocator sourceFileLocator,StackTraceParser stackTraceParser, MethodInvocationExtractor methodInvocationExtractor, CodeSnippetBuilder codeSnippetBuilder, MethodInvocationResolver methodInvocationResolver) {
         this.stackTraceParser = stackTraceParser;
         this.sourceFileLocator = sourceFileLocator;
+        this.methodInvocationExtractor = methodInvocationExtractor;
+        this.codeSnippetBuilder = codeSnippetBuilder;
+        this.methodInvocationResolver = methodInvocationResolver;
     }
 
     @Override
-    public Optional<com.proj1.ailoganlzr.DTO.CodeSnippet> extractSnippet(StackFrame frame) {
+    public Optional<CodeSnippet> extractSnippet(StackFrame frame) {
 
         Optional<Path> javaFile =
                 sourceFileLocator.locate(frame);
+
+        System.out.println("Frame = " + frame);
+        System.out.println("Java File = " + javaFile);
 
         if (javaFile.isEmpty()) {
             return Optional.empty();
         }
 
-        CompilationUnit compilationUnit;
+        CompilationUnit compilationUnit =
+                parseCompilationUnit(javaFile.get());
 
-        try {
-            compilationUnit =
-                    StaticJavaParser.parse(javaFile.get());
+
+        Optional<MethodDeclaration> targetMethod =
+                findTargetMethod(compilationUnit, frame);
+
+        if (targetMethod.isEmpty()) {
+            return Optional.empty();
         }
-        catch (IOException e) {
-            throw new RuntimeException(e);
-        }
 
-        List<MethodDeclaration> methods =
-                compilationUnit.findAll(MethodDeclaration.class);
+        MethodDeclaration method = targetMethod.get();
+        CodeSnippet snippet = codeSnippetBuilder.build(
+                compilationUnit,
+                method,
+                frame.getLineNumber()
+        );
 
-        Optional<ClassOrInterfaceDeclaration> clazz =
-                compilationUnit.findFirst(
-                        ClassOrInterfaceDeclaration.class
+        List<MethodInvocationInfo> methodInvocations =
+                methodInvocationExtractor.extract(method);
+
+        snippet.setMethodInvocations(methodInvocations);
+
+        ParsedClassContext parsedClassContext =
+                ParsedClassContext.builder()
+                        .compilationUnit(compilationUnit)
+                        .classDeclaration(
+                                compilationUnit.findFirst(ClassOrInterfaceDeclaration.class)
+                                        .orElseThrow()
+                        )
+                        .currentMethod(method)
+                        .build();
+
+        List<ResolvedMethodInvocation> resolvedInvocations =
+                methodInvocationResolver.resolve(
+                        methodInvocations,
+                        parsedClassContext
                 );
 
-        String packageName = compilationUnit.getPackageDeclaration()
-                .map(pd -> pd.getNameAsString())
-                .orElse("");
+        snippet.setResolvedMethodInvocations(
+                resolvedInvocations
+        );
 
-
-        String className = clazz
-                .map(ClassOrInterfaceDeclaration::getNameAsString)
-                .orElse("");
-
-
-        List<String> classAnnotations = clazz
-                .map(c ->
-                        c.getAnnotations()
-                                .stream()
-                                .map(annotation -> annotation.getNameAsString())
-                                .collect(Collectors.toList())
-                )
-                .orElse(Collections.emptyList());
-
-
-
-        String constructorCode = clazz
-                .filter(c -> !c.getConstructors().isEmpty())
-                .map(c -> c.getConstructors().get(0).toString())
-                .orElse("");
-
-        List<String> fields = clazz
-                .map(c ->
-                        c.getFields()
-                                .stream()
-                                .map(FieldDeclaration::toString)
-                                .collect(Collectors.toList())
-                )
-                .orElse(Collections.emptyList());
-
-        List<String> modifiers = clazz
-                .map(c ->
-                        c.getModifiers()
-                                .stream()
-                                .map(modifier -> modifier.getKeyword().asString())
-                                .collect(Collectors.toList())
-                )
-                .orElse(Collections.emptyList());
-
-        List<String> interfaces = clazz
-                .map(c ->
-                        c.getImplementedTypes()
-                                .stream()
-                                .map(type -> type.getNameAsString())
-                                .collect(Collectors.toList())
-                )
-                .orElse(Collections.emptyList());
-
-        String superClass = clazz
-                .filter(c -> !c.getExtendedTypes().isEmpty())
-                .map(c -> c.getExtendedTypes().get(0).getNameAsString())
-                .orElse("");
-
-
-        for (MethodDeclaration method : methods) {
-
-            if (method.getBegin().isEmpty() || method.getEnd().isEmpty()) {
-                continue;
-            }
-
-            int startLine = method.getBegin().get().line;
-            int endLine = method.getEnd().get().line;
-
-            if (frame.getLineNumber() >= startLine &&
-                    frame.getLineNumber() <= endLine) {
-                return Optional.of(
-                        CodeSnippet.builder()
-                                .fullyQualifiedClassName(frame.getFullyQualifiedClassName())
-                                .methodName(method.getNameAsString())
-                                .startLine(startLine)
-                                .endLine(endLine)
-                                .sourceCode(method.toString())
-                                .packageName(packageName)
-                                .className(className)
-                                .classAnnotations(classAnnotations)
-                                .constructorCode(constructorCode)
-                                .fields(fields)
-                                .classModifiers(modifiers)
-                                .implementedInterfaces(interfaces)
-                                .superClass(superClass)
-                                .build()
-                );
-            }
-        }
-
-        return Optional.empty();
+        return Optional.of(snippet);
     }
 
     @Override
     public List<CodeSnippet> extractSnippets(String stackTrace) {
-        List<StackFrame> frames = stackTraceParser.parseStackTrace(stackTrace);
+
+        List<StackFrame> frames =
+                stackTraceParser.parseStackTrace(stackTrace);
 
         List<CodeSnippet> snippets = new ArrayList<>();
 
@@ -167,22 +108,285 @@ public class JavaParserCodeSnippetExtractionService implements CodeSnippetExtrac
                 break;
             }
 
-            Optional<CodeSnippet> snippet = extractSnippet(frame);
+            Optional<CodeSnippet> optionalSnippet =
+                    extractSnippet(frame);
 
-            snippet.ifPresent(code -> {
+            if (optionalSnippet.isEmpty()) {
+                continue;
+            }
 
-                String key = code.getFullyQualifiedClassName()
-                        + "#" + code.getMethodName();
+            CodeSnippet snippet = optionalSnippet.get();
 
-                if (visited.add(key)) {
-                    snippets.add(code);
+            String key =
+                    snippet.getFullyQualifiedClassName()
+                            + "#"
+                            + snippet.getMethodName();
+
+            if (!visited.add(key)) {
+                continue;
+            }
+
+            // Add the method from the stack trace
+            snippets.add(snippet);
+
+            // Now recursively follow its business-code dependencies
+            List<ResolvedMethodInvocation> resolvedInvocations =
+                    snippet.getResolvedMethodInvocations();
+
+            if (resolvedInvocations == null) {
+                continue;
+            }
+
+            for (ResolvedMethodInvocation resolved :
+                    resolvedInvocations) {
+
+                if (snippets.size() >= MAX_SNIPPETS) {
+                    break;
                 }
 
-            });
+                if (resolved.getFullyQualifiedClassName() == null ||
+                        resolved.getInvocation() == null) {
+                    continue;
+                }
+
+                String targetClass =
+                        resolved.getFullyQualifiedClassName();
+
+                String targetMethod =
+                        resolved.getInvocation().getTargetMethod();
+
+                List<CodeSnippet> recursiveSnippets =
+                        extractRecursively(
+                                targetClass,
+                                targetMethod
+                        );
+
+                for (CodeSnippet recursiveSnippet :
+                        recursiveSnippets) {
+
+                    if (snippets.size() >= MAX_SNIPPETS) {
+                        break;
+                    }
+
+                    String recursiveKey =
+                            recursiveSnippet.getFullyQualifiedClassName()
+                                    + "#"
+                                    + recursiveSnippet.getMethodName();
+
+                    if (visited.add(recursiveKey)) {
+                        snippets.add(recursiveSnippet);
+                    }
+                }
+            }
         }
 
         return snippets;
     }
 
 
+
+    private CompilationUnit parseCompilationUnit(Path javaFile) {
+
+        try {
+            ParserConfiguration configuration =
+                    new ParserConfiguration()
+                            .setLanguageLevel(
+                                    ParserConfiguration.LanguageLevel.JAVA_26
+                            );
+
+            return new com.github.javaparser.JavaParser(configuration)
+                    .parse(javaFile)
+                    .getResult()
+                    .orElseThrow(() ->
+                            new RuntimeException(
+                                    "Unable to parse Java file: " + javaFile
+                            )
+                    );
+
+        } catch (IOException e) {
+            throw new RuntimeException(
+                    "Unable to read Java file: " + javaFile,
+                    e
+            );
+        }
+    }
+
+
+    private Optional<MethodDeclaration> findTargetMethod(
+            CompilationUnit compilationUnit,
+            StackFrame frame) {
+
+        List<MethodDeclaration> methods =
+                compilationUnit.findAll(MethodDeclaration.class);
+
+        for (MethodDeclaration method : methods) {
+
+            if (method.getBegin().isEmpty() || method.getEnd().isEmpty()) {
+                continue;
+            }
+
+            int startLine = method.getBegin().get().line;
+            int endLine = method.getEnd().get().line;
+
+            if (frame.getLineNumber() >= startLine &&
+                    frame.getLineNumber() <= endLine) {
+
+                return Optional.of(method);
+            }
+        }
+
+        return Optional.empty();
+    }
+
+
+
+    public Optional<CodeSnippet> extractByClassAndMethod(
+            String fullyQualifiedClassName,
+            String methodName) {
+
+        Optional<Path> javaFile =
+                sourceFileLocator.locateByClassName(fullyQualifiedClassName);
+
+        if (javaFile.isEmpty()) {
+            return Optional.empty();
+        }
+
+        CompilationUnit compilationUnit =
+                parseCompilationUnit(javaFile.get());
+
+        Optional<MethodDeclaration> targetMethod =
+                compilationUnit.findAll(MethodDeclaration.class)
+                        .stream()
+                        .filter(method ->
+                                method.getNameAsString().equals(methodName))
+                        .findFirst();
+
+        if (targetMethod.isEmpty()) {
+            return Optional.empty();
+        }
+
+        MethodDeclaration method = targetMethod.get();
+
+        CodeSnippet snippet =
+                codeSnippetBuilder.build(
+                        compilationUnit,
+                        method,
+                        method.getBegin()
+                                .map(position -> position.line)
+                                .orElse(0)
+                );
+
+        List<MethodInvocationInfo> invocations =
+                methodInvocationExtractor.extract(method);
+
+        snippet.setMethodInvocations(invocations);
+
+        ParsedClassContext context =
+                ParsedClassContext.builder()
+                        .compilationUnit(compilationUnit)
+                        .classDeclaration(
+                                compilationUnit.findFirst(
+                                        ClassOrInterfaceDeclaration.class
+                                ).orElseThrow()
+                        )
+                        .currentMethod(method)
+                        .build();
+
+        List<ResolvedMethodInvocation> resolvedInvocations =
+                methodInvocationResolver.resolve(
+                        invocations,
+                        context
+                );
+
+        snippet.setResolvedMethodInvocations(resolvedInvocations);
+
+        return Optional.of(snippet);
+    }
+
+
+    @Override
+    public List<CodeSnippet> extractRecursively(
+            String fullyQualifiedClassName,
+            String methodName) {
+
+        List<CodeSnippet> result = new ArrayList<>();
+
+        Set<String> visited = new HashSet<>();
+
+        extractRecursively(
+                fullyQualifiedClassName,
+                methodName,
+                result,
+                visited
+        );
+
+        return result;
+    }
+
+
+    private void extractRecursively(
+            String fullyQualifiedClassName,
+            String methodName,
+            List<CodeSnippet> result,
+            Set<String> visited) {
+
+        String key =
+                fullyQualifiedClassName + "#" + methodName;
+
+        // Prevent circular dependencies / duplicate extraction
+        if (!visited.add(key)) {
+            return;
+        }
+
+        Optional<CodeSnippet> optionalSnippet =
+                extractByClassAndMethod(
+                        fullyQualifiedClassName,
+                        methodName
+                );
+
+        if (optionalSnippet.isEmpty()) {
+            return;
+        }
+
+        CodeSnippet snippet = optionalSnippet.get();
+
+        result.add(snippet);
+
+        List<ResolvedMethodInvocation> resolvedInvocations =
+                snippet.getResolvedMethodInvocations();
+
+        if (resolvedInvocations == null) {
+            return;
+        }
+
+        for (ResolvedMethodInvocation resolved :
+                resolvedInvocations) {
+
+            if (resolved.getFullyQualifiedClassName() == null) {
+                continue;
+            }
+
+            MethodInvocationInfo invocation =
+                    resolved.getInvocation();
+
+            if (invocation == null) {
+                continue;
+            }
+
+            String targetClass =
+                    resolved.getFullyQualifiedClassName();
+
+            String targetMethod =
+                    invocation.getTargetMethod();
+
+            extractRecursively(
+                    targetClass,
+                    targetMethod,
+                    result,
+                    visited
+            );
+        }
+    }
+
+    
 }

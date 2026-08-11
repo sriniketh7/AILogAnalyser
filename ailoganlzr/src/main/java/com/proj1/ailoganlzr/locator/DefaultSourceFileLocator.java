@@ -35,4 +35,24 @@ public class DefaultSourceFileLocator implements SourceFileLocator {
 
         return Optional.empty();
     }
+
+
+    @Override
+    public Optional<Path> locateByClassName(String fullyQualifiedClassName) {
+
+        Path sourceRoot =
+                sourceRootResolver.resolveSourceRoot();
+
+        Path javaFile =
+                sourceRoot.resolve(
+                        fullyQualifiedClassName
+                                .replace('.', '/')
+                                + ".java");
+
+        if (Files.exists(javaFile)) {
+            return Optional.of(javaFile);
+        }
+
+        return Optional.empty();
+    }
 }
