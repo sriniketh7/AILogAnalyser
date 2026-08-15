@@ -84,8 +84,6 @@ public class GeminiAIAnalysisService implements AIAnalysisService {
         }
 
         List<CodeSnippet> orderedSnippets = new ArrayList<>(snippets);
-        Collections.reverse(orderedSnippets);
-
         StringBuilder builder = new StringBuilder();
 
         builder.append("""
@@ -106,11 +104,10 @@ public class GeminiAIAnalysisService implements AIAnalysisService {
 
             if (i == 0) {
                 role = "ENTRY POINT";
-            } else if (i == totalFrames - 1) {
-                role = "FAILURE POINT";
             } else {
                 role = "APPLICATION LOGIC";
             }
+
 
             builder.append("Frame ")
                     .append(i + 1)

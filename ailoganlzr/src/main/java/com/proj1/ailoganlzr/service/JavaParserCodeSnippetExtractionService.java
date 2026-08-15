@@ -100,7 +100,7 @@ public class JavaParserCodeSnippetExtractionService implements CodeSnippetExtrac
 
         Set<String> visited = new HashSet<>();
 
-        final int MAX_SNIPPETS = 5;
+        final int MAX_SNIPPETS = 10;
 
         for (StackFrame frame : frames) {
 
@@ -179,6 +179,21 @@ public class JavaParserCodeSnippetExtractionService implements CodeSnippetExtrac
                 }
             }
         }
+
+        System.out.println("\n===== EXTRACTED SNIPPETS ORDER =====");
+
+        for (int i = 0; i < snippets.size(); i++) {
+            CodeSnippet snippet = snippets.get(i);
+
+            System.out.println(
+                    (i + 1) + ". "
+                            + snippet.getFullyQualifiedClassName()
+                            + "#"
+                            + snippet.getMethodName()
+            );
+        }
+
+        System.out.println("====================================\n");
 
         return snippets;
     }
