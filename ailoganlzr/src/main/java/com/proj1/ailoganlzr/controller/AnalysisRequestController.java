@@ -2,7 +2,6 @@ package com.proj1.ailoganlzr.controller;
 
 import com.proj1.ailoganlzr.DTO.AnalysisRequestDto;
 import com.proj1.ailoganlzr.DTO.CommonResponse.ApiResponse;
-import com.proj1.ailoganlzr.DTO.Response.AnalysisResponseDto;
 import com.proj1.ailoganlzr.DTO.Response.AnalysisResultResponseDto;
 import com.proj1.ailoganlzr.service.AnalysisService;
 import jakarta.validation.Valid;
