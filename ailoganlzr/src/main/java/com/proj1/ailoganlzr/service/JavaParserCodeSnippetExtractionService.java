@@ -231,6 +231,10 @@ public class JavaParserCodeSnippetExtractionService implements CodeSnippetExtrac
             CompilationUnit compilationUnit,
             StackFrame frame) {
 
+        if (frame.getLineNumber() == null) {
+            return Optional.empty();
+        }
+
         List<MethodDeclaration> methods =
                 compilationUnit.findAll(MethodDeclaration.class);
 

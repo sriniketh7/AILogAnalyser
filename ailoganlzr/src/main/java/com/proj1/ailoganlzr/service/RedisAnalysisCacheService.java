@@ -1,10 +1,11 @@
 package com.proj1.ailoganlzr.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+
+import tools.jackson.databind.ObjectMapper;
 import com.proj1.ailoganlzr.AILayer.Model.AIAnalysisResponse;
 import com.proj1.ailoganlzr.cache.AnalysisCacheService;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -13,6 +14,7 @@ import java.time.Duration;
 import java.util.HexFormat;
 import java.util.Optional;
 
+@Service
 public class RedisAnalysisCacheService  implements AnalysisCacheService {
 
 
@@ -48,7 +50,7 @@ public class RedisAnalysisCacheService  implements AnalysisCacheService {
                             AIAnalysisResponse.class
                     )
             );
-        } catch (JsonProcessingException e) {
+        } catch (Exception e) {
             return Optional.empty();
         }
     }
@@ -69,7 +71,7 @@ public class RedisAnalysisCacheService  implements AnalysisCacheService {
                     Duration.ofHours(24)
             );
 
-        } catch (JsonProcessingException e) {
+        } catch (Exception e) {
             throw new RuntimeException(
                     "Failed to cache AI analysis response",
                     e
@@ -82,9 +84,7 @@ public class RedisAnalysisCacheService  implements AnalysisCacheService {
     public void evict(String rawLog) {
 
         String key = buildKey(rawLog);
-        redisTemplate.delete(key); redisTemplate.delete(
-                buildKey(rawLog)
-        );
+        redisTemplate.delete(key);
     }
 
 

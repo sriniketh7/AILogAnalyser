@@ -47,14 +47,24 @@ public class RegexStackTraceParser implements StackTraceParser {
             return Optional.empty();
         }
 
+        int closingBracket = line.indexOf(')', openingBracket);
+
+        if (closingBracket == -1) {
+            return Optional.empty();
+        }
+
         String methodPart = line.substring(0, openingBracket);
 
-        String sourcePart = line.substring(openingBracket + 1, line.length() - 1).trim();
+        String sourcePart = line.substring(
+                openingBracket + 1,
+                closingBracket
+        ).trim();
 
         // Handle Java 9+ module prefix
-        // java.base/java.util.ArrayList.get(...)
         if (methodPart.contains("/")) {
-            methodPart = methodPart.substring(methodPart.indexOf('/') + 1);
+            methodPart = methodPart.substring(
+                    methodPart.indexOf('/') + 1
+            );
         }
 
         return Optional.of(buildStackFrame(methodPart, sourcePart));

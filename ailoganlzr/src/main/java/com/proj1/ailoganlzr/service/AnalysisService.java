@@ -8,6 +8,7 @@ import com.proj1.ailoganlzr.DTO.AnalysisRequestDto;
 import com.proj1.ailoganlzr.DTO.Response.AnalysisResultResponseDto;
 import com.proj1.ailoganlzr.Model.AnalysisRequest;
 import com.proj1.ailoganlzr.Model.AnalysisResult;
+import com.proj1.ailoganlzr.cache.AnalysisCacheService;
 import com.proj1.ailoganlzr.dao.AnalysisRequestRepository;
 import com.proj1.ailoganlzr.enums.AnalysisStatus;
 import com.proj1.ailoganlzr.exception.AIAnalysisException;
@@ -19,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -28,12 +30,14 @@ public class AnalysisService implements AnalysisRequestIn {
     private final AnalysisRequestRepository requestRepository;
     private final AnalysisMapper requestMapper;
     private final AIAnalysisService aiAnalysisService;
+    private final AnalysisCacheService analysisCacheService;
 
 
-    public AnalysisService(AnalysisRequestRepository requestRepository, AnalysisMapper requestMapper, AIAnalysisService aiAnalysisService) {
+    public AnalysisService(AnalysisRequestRepository requestRepository, AnalysisMapper requestMapper, AIAnalysisService aiAnalysisService, AnalysisCacheService analysisCacheService) {
         this.requestRepository = requestRepository;
         this.requestMapper = requestMapper;
         this.aiAnalysisService = aiAnalysisService;
+        this.analysisCacheService = analysisCacheService;
     }
 
 
@@ -59,9 +63,36 @@ public class AnalysisService implements AnalysisRequestIn {
 
         long start = System.currentTimeMillis();
         AIAnalysisResponse aiResponse;
+        boolean isCached;
         try {
             log.info("Starting AI analysis for request with ID: {}", request.getId());
-            aiResponse = aiAnalysisService.analyzeStackTrace(request.getRawLog());
+            String rawLog = request.getRawLog();
+            Optional<AIAnalysisResponse> cachedResponse = analysisCacheService.get(rawLog);
+
+            if (cachedResponse.isPresent()) {
+
+                log.info(
+                        "Cache HIT for request with ID: {}. Skipping AI analysis.",
+                        request.getId()
+                );
+
+                aiResponse = cachedResponse.get();
+                isCached = true;
+
+            }
+            else {
+
+                log.info(
+                        "Cache MISS for request with ID: {}. Calling AI analysis.",
+                        request.getId()
+                );
+
+                aiResponse = aiAnalysisService.analyzeStackTrace(rawLog);
+
+                analysisCacheService.put(rawLog, aiResponse);
+                isCached = false;
+            }
+
         }
         catch (Exception e) {
             log.error("Error occurred while analyzing request with ID: {}", request.getId(), e);
@@ -78,7 +109,7 @@ public class AnalysisService implements AnalysisRequestIn {
         long end = System.currentTimeMillis();
         long processingTime = end - start;
 
-        AnalysisResult result = buildAnalysisResult(aiResponse, processingTime);
+        AnalysisResult result = buildAnalysisResult(aiResponse, processingTime, isCached);
         request.addAnalysisResult(result);
 
 
@@ -92,7 +123,7 @@ public class AnalysisService implements AnalysisRequestIn {
 
     }
 
-    private AnalysisResult buildAnalysisResult(AIAnalysisResponse aiResponse, long processingTime) {
+    private AnalysisResult buildAnalysisResult(AIAnalysisResponse aiResponse, long processingTime, boolean isCached) {
 
         AnalysisResult result = new AnalysisResult();
 
@@ -103,9 +134,17 @@ public class AnalysisService implements AnalysisRequestIn {
 
         result.setAiModel(AiConstants.DEFAULT_MODEL);
         result.setPromptVersion(PromptVersion.VERSION);
-        result.setCached(false);
+        result.setCached(isCached);
         result.setProcessingTimeMs(processingTime);
 
         return result;
+    }
+
+    public void generateTestException() {
+
+        String testValue = null;
+
+        // Deliberate NullPointerException
+        testValue.length();
     }
 }
