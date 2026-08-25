@@ -5,8 +5,10 @@ import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.proj1.ailoganlzr.DTO.*;
 import com.proj1.ailoganlzr.locator.SourceFileLocator;
+import com.proj1.ailoganlzr.metrics.MetricService;
 import com.proj1.ailoganlzr.service.Interface.*;
 import org.springframework.stereotype.Service;
+import io.micrometer.core.instrument.Timer;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 
@@ -22,13 +24,15 @@ public class JavaParserCodeSnippetExtractionService implements CodeSnippetExtrac
     private final MethodInvocationExtractor methodInvocationExtractor;
     private final CodeSnippetBuilder codeSnippetBuilder;
     private final MethodInvocationResolver methodInvocationResolver;
+    private final MetricService metricsService;
 
-    public JavaParserCodeSnippetExtractionService(SourceFileLocator sourceFileLocator,StackTraceParser stackTraceParser, MethodInvocationExtractor methodInvocationExtractor, CodeSnippetBuilder codeSnippetBuilder, MethodInvocationResolver methodInvocationResolver) {
+    public JavaParserCodeSnippetExtractionService(SourceFileLocator sourceFileLocator,StackTraceParser stackTraceParser, MethodInvocationExtractor methodInvocationExtractor, CodeSnippetBuilder codeSnippetBuilder, MethodInvocationResolver methodInvocationResolver, MetricService metricsService) {
         this.stackTraceParser = stackTraceParser;
         this.sourceFileLocator = sourceFileLocator;
         this.methodInvocationExtractor = methodInvocationExtractor;
         this.codeSnippetBuilder = codeSnippetBuilder;
         this.methodInvocationResolver = methodInvocationResolver;
+        this.metricsService = metricsService;
     }
 
     @Override
@@ -92,7 +96,8 @@ public class JavaParserCodeSnippetExtractionService implements CodeSnippetExtrac
 
     @Override
     public List<CodeSnippet> extractSnippets(String stackTrace) {
-
+        Timer.Sample sample =
+                metricsService.startCodeExtractionTimer();
         List<StackFrame> frames =
                 stackTraceParser.parseStackTrace(stackTrace);
 
@@ -194,6 +199,8 @@ public class JavaParserCodeSnippetExtractionService implements CodeSnippetExtrac
         }
 
         System.out.println("====================================\n");
+
+        metricsService.stopCodeExtractionTimer(sample);
 
         return snippets;
     }

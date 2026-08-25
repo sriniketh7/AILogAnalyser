@@ -1,5 +1,7 @@
 package com.proj1.ailoganlzr.AILayer.rag;
 
+import com.proj1.ailoganlzr.metrics.MetricService;
+import io.micrometer.core.instrument.Timer;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
@@ -22,10 +24,13 @@ public class RAGService {
 
     private final VectorStore vectorStore;
 
-    public RAGService(KnowledgeBaseLoader knowledgeBaseLoader, TokenTextSplitter tokenTextSplitter, VectorStore vectorStore) {
+    private final MetricService metricsService;
+
+    public RAGService(KnowledgeBaseLoader knowledgeBaseLoader, TokenTextSplitter tokenTextSplitter, VectorStore vectorStore, MetricService metricsService) {
         this.knowledgeBaseLoader = knowledgeBaseLoader;
         this.tokenTextSplitter = tokenTextSplitter;
         this.vectorStore = vectorStore;
+        this.metricsService = metricsService;
     }
 
     @PostConstruct
@@ -47,8 +52,12 @@ public class RAGService {
     }
 
     public List<Document> retrieveRelevantDocuments(String stackstrace) {
+
+        Timer.Sample sample =
+                metricsService.startRagTimer();
         SearchRequest searchRequest = SearchRequest.builder().query(stackstrace).topK(3).build();
         List<Document> documents = vectorStore.similaritySearch(searchRequest);
+        metricsService.stopRagTimer(sample);
         log.info("Retrieved {} relevant documents from PGVector.", documents.size());
 
 //        for (int i = 0; i < documents.size(); i++) {

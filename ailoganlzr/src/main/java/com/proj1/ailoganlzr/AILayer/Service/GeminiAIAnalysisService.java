@@ -7,7 +7,9 @@ import com.proj1.ailoganlzr.AILayer.prompt.PromptBuilder;
 import com.proj1.ailoganlzr.AILayer.rag.RAGService;
 import com.proj1.ailoganlzr.DTO.CodeSnippet;
 import com.proj1.ailoganlzr.exception.AIAnalysisException;
+import com.proj1.ailoganlzr.metrics.MetricService;
 import com.proj1.ailoganlzr.service.Interface.CodeSnippetExtractionService;
+import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.document.Document;
@@ -32,16 +34,21 @@ public class GeminiAIAnalysisService implements AIAnalysisService {
 
     private final CodeSnippetExtractionService codeSnippetExtractionService;
 
-    public GeminiAIAnalysisService(ChatClient chatClient, PromptBuilder promptBuilder, AiParser parser, RAGService ragService, CodeSnippetExtractionService codeSnippetExtractionService) {
+    private final MetricService metricsService;
+
+    public GeminiAIAnalysisService(ChatClient chatClient, PromptBuilder promptBuilder, AiParser parser, RAGService ragService, CodeSnippetExtractionService codeSnippetExtractionService, MetricService metricsService) {
         this.chatClient = chatClient;
         this.promptBuilder = promptBuilder;
         this.parser = parser;
         this.ragService = ragService;
         this.codeSnippetExtractionService = codeSnippetExtractionService;
+        this.metricsService = metricsService;
     }
 
     @Override
     public AIAnalysisResponse analyzeStackTrace(String rawLog) {
+
+
 
         List<Document> documents =
                 ragService.retrieveRelevantDocuments(rawLog);
@@ -66,11 +73,17 @@ public class GeminiAIAnalysisService implements AIAnalysisService {
 
         log.info("Constructed prompt for AI analysis: {}", prompt);
         try {
+            Timer.Sample sample =
+                    metricsService.startGeminiTimer();
             log.info("Analyzing stack trace for raw log: {}", rawLog);
-            return chatClient.prompt(prompt)
+            AIAnalysisResponse response = chatClient.prompt(prompt)
                     .call()
                     .entity(AIAnalysisResponse.class);
+            metricsService.stopGeminiTimer(sample);
+            return response;
         } catch (Exception e) {
+            metricsService.stopGeminiTimer(sample);
+            metricsService.incrementAiFailure();
             log.error("Error occurred while analyzing stack trace for raw log: {}", rawLog, e);
             throw new AIAnalysisException("Failed to analyze stack trace", e);
         }

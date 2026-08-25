@@ -13,7 +13,9 @@ import com.proj1.ailoganlzr.dao.AnalysisRequestRepository;
 import com.proj1.ailoganlzr.enums.AnalysisStatus;
 import com.proj1.ailoganlzr.exception.AIAnalysisException;
 import com.proj1.ailoganlzr.mapper.AnalysisMapper;
+import com.proj1.ailoganlzr.metrics.MetricService;
 import com.proj1.ailoganlzr.service.Interface.AnalysisRequestIn;
+import io.micrometer.core.instrument.Timer;
 import jakarta.transaction.Transactional;
 import com.proj1.ailoganlzr.enums.AnalysisType;
 import lombok.extern.slf4j.Slf4j;
@@ -31,13 +33,16 @@ public class AnalysisService implements AnalysisRequestIn {
     private final AnalysisMapper requestMapper;
     private final AIAnalysisService aiAnalysisService;
     private final AnalysisCacheService analysisCacheService;
+    private final MetricService metricService;
 
 
-    public AnalysisService(AnalysisRequestRepository requestRepository, AnalysisMapper requestMapper, AIAnalysisService aiAnalysisService, AnalysisCacheService analysisCacheService) {
+    public AnalysisService(AnalysisRequestRepository requestRepository, AnalysisMapper requestMapper, AIAnalysisService aiAnalysisService, AnalysisCacheService analysisCacheService, MetricService metricService) {
         this.requestRepository = requestRepository;
         this.requestMapper = requestMapper;
         this.aiAnalysisService = aiAnalysisService;
         this.analysisCacheService = analysisCacheService;
+        this.metricService = metricService;
+
     }
 
 
@@ -45,6 +50,10 @@ public class AnalysisService implements AnalysisRequestIn {
     @Override
     @Transactional
     public AnalysisResultResponseDto analyse(AnalysisRequestDto requestDto) {
+
+        metricService.incrementAnalysisRequests();
+        Timer.Sample analysisSample =
+                metricService.startAnalysisTimer();
 
         // DTO -> Entity
         AnalysisRequest request = requestMapper.toEntity(requestDto);
@@ -70,6 +79,7 @@ public class AnalysisService implements AnalysisRequestIn {
             Optional<AIAnalysisResponse> cachedResponse = analysisCacheService.get(rawLog);
 
             if (cachedResponse.isPresent()) {
+                metricService.incrementCacheHit();
 
                 log.info(
                         "Cache HIT for request with ID: {}. Skipping AI analysis.",
@@ -81,6 +91,7 @@ public class AnalysisService implements AnalysisRequestIn {
 
             }
             else {
+                metricService.incrementCacheMiss();
 
                 log.info(
                         "Cache MISS for request with ID: {}. Calling AI analysis.",
@@ -95,6 +106,8 @@ public class AnalysisService implements AnalysisRequestIn {
 
         }
         catch (Exception e) {
+            metricService.incrementAiFailure();
+            metricService.stopAnalysisTimer(analysisSample);
             log.error("Error occurred while analyzing request with ID: {}", request.getId(), e);
             request.setStatus(AnalysisStatus.FAILED);
             String message = e.getMessage();
@@ -119,6 +132,7 @@ public class AnalysisService implements AnalysisRequestIn {
 
         log.info("Analysis Completed and saved to database with status COMPLETED for request with ID: {}", request.getId());
 
+        metricService.stopAnalysisTimer(analysisSample);
         return requestMapper.toResponseDto(result);
 
     }

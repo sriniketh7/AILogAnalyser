@@ -1,6 +1,8 @@
 package com.proj1.ailoganlzr.service;
 
 
+import com.proj1.ailoganlzr.metrics.MetricService;
+import io.micrometer.core.instrument.Timer;
 import tools.jackson.databind.ObjectMapper;
 import com.proj1.ailoganlzr.AILayer.Model.AIAnalysisResponse;
 import com.proj1.ailoganlzr.cache.AnalysisCacheService;
@@ -22,13 +24,16 @@ public class RedisAnalysisCacheService  implements AnalysisCacheService {
 
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
+    private final MetricService metricsService;
 
     public RedisAnalysisCacheService(
             StringRedisTemplate redisTemplate,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            MetricService metricsService) {
 
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
+        this.metricsService = metricsService;
     }
 
 
@@ -36,8 +41,10 @@ public class RedisAnalysisCacheService  implements AnalysisCacheService {
     public Optional<AIAnalysisResponse> get(String rawLog) {
         String key = buildKey(rawLog);
 
+        Timer.Sample sample = metricsService.startRedisLookupTimer();
         String cachedValue =
                 redisTemplate.opsForValue().get(key);
+        metricsService.stopRedisLookupTimer(sample);
 
         if (cachedValue == null) {
             return Optional.empty();
