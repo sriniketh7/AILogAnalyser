@@ -2,27 +2,31 @@ package com.proj1.ailoganlzr.metrics;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import org.springframework.stereotype.Service;
 import io.micrometer.core.instrument.Timer;
-import io.micrometer.core.instrument.MeterRegistry;
+import org.springframework.stereotype.Service;
 
 @Service
 public class MetricService {
 
+    // -------- Counters --------
     private final Counter analysisRequestsCounter;
     private final Counter cacheHitCounter;
     private final Counter cacheMissCounter;
     private final Counter aiFailureCounter;
+
+    // -------- Timers --------
     private final Timer analysisTimer;
-    private final MeterRegistry meterRegistry;
     private final Timer redisLookupTimer;
     private final Timer ragTimer;
     private final Timer codeExtractionTimer;
     private final Timer geminiTimer;
 
+    private final MeterRegistry meterRegistry;
+
     public MetricService(MeterRegistry meterRegistry) {
         this.meterRegistry = meterRegistry;
 
+        // -------- Counter Registration --------
         analysisRequestsCounter = Counter.builder("ailoganlzr.analysis.requests.total")
                 .description("Total number of analysis requests")
                 .register(meterRegistry);
@@ -38,6 +42,8 @@ public class MetricService {
         aiFailureCounter = Counter.builder("ailoganlzr.analysis.ai.failures")
                 .description("Total AI analysis failures")
                 .register(meterRegistry);
+
+        // -------- Timer Registration --------
         analysisTimer = Timer.builder("ailoganlzr.analysis.total.time")
                 .description("Total analysis request duration")
                 .register(meterRegistry);
@@ -47,7 +53,7 @@ public class MetricService {
                 .register(meterRegistry);
 
         ragTimer = Timer.builder("ailoganlzr.analysis.rag.time")
-                .description("RAG similarity search duration")
+                .description("PGVector similarity search duration")
                 .register(meterRegistry);
 
         codeExtractionTimer = Timer.builder("ailoganlzr.analysis.code.extraction.time")
@@ -58,6 +64,8 @@ public class MetricService {
                 .description("Gemini API response duration")
                 .register(meterRegistry);
     }
+
+    // ================= COUNTERS =================
 
     public void incrementAnalysisRequests() {
         analysisRequestsCounter.increment();
@@ -74,6 +82,9 @@ public class MetricService {
     public void incrementAiFailure() {
         aiFailureCounter.increment();
     }
+
+    // ================= ANALYSIS TIMER =================
+
     public Timer.Sample startAnalysisTimer() {
         return Timer.start(meterRegistry);
     }
@@ -82,24 +93,43 @@ public class MetricService {
         sample.stop(analysisTimer);
     }
 
-    public Timer.Sample startCodeExtractionTimer() {
-    }
-
-    public void stopCodeExtractionTimer(Timer.Sample sample) {
-    }
+    // ================= REDIS TIMER =================
 
     public Timer.Sample startRedisLookupTimer() {
+        return Timer.start(meterRegistry);
     }
 
     public void stopRedisLookupTimer(Timer.Sample sample) {
+        sample.stop(redisLookupTimer);
     }
 
-    public Timer.Sample startGeminiTimer() {
+    // ================= RAG TIMER =================
+
+    public Timer.Sample startRagTimer() {
+        return Timer.start(meterRegistry);
     }
 
     public void stopRagTimer(Timer.Sample sample) {
+        sample.stop(ragTimer);
     }
 
-    public Timer.Sample startRagTimer() {
+    // ================= CODE EXTRACTION TIMER =================
+
+    public Timer.Sample startCodeExtractionTimer() {
+        return Timer.start(meterRegistry);
+    }
+
+    public void stopCodeExtractionTimer(Timer.Sample sample) {
+        sample.stop(codeExtractionTimer);
+    }
+
+    // ================= GEMINI TIMER =================
+
+    public Timer.Sample startGeminiTimer() {
+        return Timer.start(meterRegistry);
+    }
+
+    public void stopGeminiTimer(Timer.Sample sample) {
+        sample.stop(geminiTimer);
     }
 }
