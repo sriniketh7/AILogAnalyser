@@ -29,14 +29,17 @@ public class MetricService {
         // -------- Counter Registration --------
         analysisRequestsCounter = Counter.builder("ailoganlzr.analysis.requests.total")
                 .description("Total number of analysis requests")
+                .tag("analysisType", "STACK_TRACE")
                 .register(meterRegistry);
 
-        cacheHitCounter = Counter.builder("ailoganlzr.analysis.cache.hit")
-                .description("Total cache hits")
+        cacheHitCounter = Counter.builder("ailoganlzr.analysis.cache.requests")
+                .description("Redis cache requests")
+                .tag("cache", "hit")
                 .register(meterRegistry);
 
-        cacheMissCounter = Counter.builder("ailoganlzr.analysis.cache.miss")
-                .description("Total cache misses")
+        cacheMissCounter = Counter.builder("ailoganlzr.analysis.cache.requests")
+                .description("Redis cache requests")
+                .tag("cache", "miss")
                 .register(meterRegistry);
 
         aiFailureCounter = Counter.builder("ailoganlzr.analysis.ai.failures")
@@ -54,14 +57,17 @@ public class MetricService {
 
         ragTimer = Timer.builder("ailoganlzr.analysis.rag.time")
                 .description("PGVector similarity search duration")
+                .tag("vectorStore", "pgvector")
                 .register(meterRegistry);
 
         codeExtractionTimer = Timer.builder("ailoganlzr.analysis.code.extraction.time")
                 .description("JavaParser code extraction duration")
+                .tag("parser", "javaparser")
                 .register(meterRegistry);
 
         geminiTimer = Timer.builder("ailoganlzr.analysis.ai.time")
                 .description("Gemini API response duration")
+                .tag("model", "gemini-3.1-flash-lite")
                 .register(meterRegistry);
     }
 

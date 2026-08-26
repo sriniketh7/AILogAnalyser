@@ -49,7 +49,8 @@ public class GeminiAIAnalysisService implements AIAnalysisService {
     public AIAnalysisResponse analyzeStackTrace(String rawLog) {
 
 
-
+        Timer.Sample sample =
+                metricsService.startGeminiTimer();
         List<Document> documents =
                 ragService.retrieveRelevantDocuments(rawLog);
 
@@ -73,8 +74,7 @@ public class GeminiAIAnalysisService implements AIAnalysisService {
 
         log.info("Constructed prompt for AI analysis: {}", prompt);
         try {
-            Timer.Sample sample =
-                    metricsService.startGeminiTimer();
+
             log.info("Analyzing stack trace for raw log: {}", rawLog);
             AIAnalysisResponse response = chatClient.prompt(prompt)
                     .call()
