@@ -1,5 +1,6 @@
 package com.proj1.ailoganlzr.metrics;
 
+import com.proj1.ailoganlzr.config.AnalyzerProperties;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -7,6 +8,8 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class MetricService {
+
+    private final AnalyzerProperties analyzerProperties;
 
     // -------- Counters --------
     private final Counter analysisRequestsCounter;
@@ -23,8 +26,9 @@ public class MetricService {
 
     private final MeterRegistry meterRegistry;
 
-    public MetricService(MeterRegistry meterRegistry) {
+    public MetricService(MeterRegistry meterRegistry, AnalyzerProperties analyzerProperties) {
         this.meterRegistry = meterRegistry;
+        this.analyzerProperties = analyzerProperties;
 
         // -------- Counter Registration --------
         analysisRequestsCounter = Counter.builder("ailoganlzr.analysis.requests.total")
@@ -57,17 +61,17 @@ public class MetricService {
 
         ragTimer = Timer.builder("ailoganlzr.analysis.rag.time")
                 .description("PGVector similarity search duration")
-                .tag("vectorStore", "pgvector")
+                .tag("vectorStore", analyzerProperties.getVectorStore())
                 .register(meterRegistry);
 
         codeExtractionTimer = Timer.builder("ailoganlzr.analysis.code.extraction.time")
                 .description("JavaParser code extraction duration")
-                .tag("parser", "javaparser")
+                .tag("parser", analyzerProperties.getParserEngine())
                 .register(meterRegistry);
 
         geminiTimer = Timer.builder("ailoganlzr.analysis.ai.time")
                 .description("Gemini API response duration")
-                .tag("model", "gemini-3.1-flash-lite")
+                .tag("model", analyzerProperties.getAiModel())
                 .register(meterRegistry);
     }
 

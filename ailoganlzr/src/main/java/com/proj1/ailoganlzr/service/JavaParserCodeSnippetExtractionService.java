@@ -4,12 +4,13 @@ import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.proj1.ailoganlzr.DTO.*;
+import com.proj1.ailoganlzr.config.AnalyzerProperties;
 import com.proj1.ailoganlzr.locator.SourceFileLocator;
 import com.proj1.ailoganlzr.metrics.MetricService;
 import com.proj1.ailoganlzr.service.Interface.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import io.micrometer.core.instrument.Timer;
-import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 
 import java.io.IOException;
@@ -17,6 +18,7 @@ import java.nio.file.Path;
 import java.util.*;
 
 @Service
+@Slf4j
 public class JavaParserCodeSnippetExtractionService implements CodeSnippetExtractionService {
 
     private final SourceFileLocator sourceFileLocator;
@@ -25,14 +27,16 @@ public class JavaParserCodeSnippetExtractionService implements CodeSnippetExtrac
     private final CodeSnippetBuilder codeSnippetBuilder;
     private final MethodInvocationResolver methodInvocationResolver;
     private final MetricService metricsService;
+    private final AnalyzerProperties analyzerProperties;
 
-    public JavaParserCodeSnippetExtractionService(SourceFileLocator sourceFileLocator,StackTraceParser stackTraceParser, MethodInvocationExtractor methodInvocationExtractor, CodeSnippetBuilder codeSnippetBuilder, MethodInvocationResolver methodInvocationResolver, MetricService metricsService) {
+    public JavaParserCodeSnippetExtractionService(SourceFileLocator sourceFileLocator,StackTraceParser stackTraceParser, MethodInvocationExtractor methodInvocationExtractor, CodeSnippetBuilder codeSnippetBuilder, MethodInvocationResolver methodInvocationResolver, MetricService metricsService, AnalyzerProperties analyzerProperties) {
         this.stackTraceParser = stackTraceParser;
         this.sourceFileLocator = sourceFileLocator;
         this.methodInvocationExtractor = methodInvocationExtractor;
         this.codeSnippetBuilder = codeSnippetBuilder;
         this.methodInvocationResolver = methodInvocationResolver;
         this.metricsService = metricsService;
+        this.analyzerProperties = analyzerProperties;
     }
 
     @Override
@@ -41,8 +45,6 @@ public class JavaParserCodeSnippetExtractionService implements CodeSnippetExtrac
         Optional<Path> javaFile =
                 sourceFileLocator.locate(frame);
 
-        System.out.println("Frame = " + frame);
-        System.out.println("Java File = " + javaFile);
 
         if (javaFile.isEmpty()) {
             return Optional.empty();
@@ -105,7 +107,7 @@ public class JavaParserCodeSnippetExtractionService implements CodeSnippetExtrac
 
         Set<String> visited = new HashSet<>();
 
-        final int MAX_SNIPPETS = 10;
+        final int MAX_SNIPPETS = analyzerProperties.getMaxSnippets();
 
         for (StackFrame frame : frames) {
 
@@ -184,21 +186,7 @@ public class JavaParserCodeSnippetExtractionService implements CodeSnippetExtrac
                 }
             }
         }
-
-        System.out.println("\n===== EXTRACTED SNIPPETS ORDER =====");
-
-        for (int i = 0; i < snippets.size(); i++) {
-            CodeSnippet snippet = snippets.get(i);
-
-            System.out.println(
-                    (i + 1) + ". "
-                            + snippet.getFullyQualifiedClassName()
-                            + "#"
-                            + snippet.getMethodName()
-            );
-        }
-
-        System.out.println("====================================\n");
+        log.info("the code snippet extraction service has extracted {} snippets from the stack trace", snippets.size());
 
         metricsService.stopCodeExtractionTimer(sample);
 

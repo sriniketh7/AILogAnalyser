@@ -41,9 +41,5 @@ public class AnalysisRequestController {
 
     }
 
-    @GetMapping("/test-exception")
-    public void testException() {
-        service.generateTestException();
-    }
 
 }

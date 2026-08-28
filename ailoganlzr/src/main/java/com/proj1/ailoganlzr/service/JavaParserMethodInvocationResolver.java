@@ -11,6 +11,7 @@ import com.proj1.ailoganlzr.DTO.ResolvedMethodInvocation;
 import com.proj1.ailoganlzr.locator.SourceRootResolver;
 import com.github.javaparser.ParserConfiguration;
 import com.proj1.ailoganlzr.service.Interface.MethodInvocationResolver;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -20,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+@Slf4j
 @Service
 public class JavaParserMethodInvocationResolver
         implements MethodInvocationResolver {
@@ -363,16 +365,12 @@ public class JavaParserMethodInvocationResolver
             String interfaceName
     ) {
 
-        System.out.println(
-                "Looking for implementation of interface: "
-                        + interfaceName
+        log.info(
+                "Looking for implementation of interface: {}",
+                interfaceName
         );
 
         Path sourceRoot = sourceRootResolver.resolveSourceRoot();
-
-        System.out.println(
-                "Source root: " + sourceRoot
-        );
 
 
         try {
@@ -442,11 +440,11 @@ public class JavaParserMethodInvocationResolver
             return Optional.of(className);
         }
 
-        System.out.println(
-                "Checking class: "
-                        + declaration.getNameAsString()
-                        + " for interface: "
-                        + interfaceName
+       log.info(
+                "Found implementation of {}: {}.{}",
+                interfaceName,
+                packageName,
+                className
         );
 
         return Optional.of(

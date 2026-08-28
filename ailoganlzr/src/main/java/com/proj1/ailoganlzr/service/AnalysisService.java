@@ -9,6 +9,7 @@ import com.proj1.ailoganlzr.DTO.Response.AnalysisResultResponseDto;
 import com.proj1.ailoganlzr.Model.AnalysisRequest;
 import com.proj1.ailoganlzr.Model.AnalysisResult;
 import com.proj1.ailoganlzr.cache.AnalysisCacheService;
+import com.proj1.ailoganlzr.config.AnalyzerProperties;
 import com.proj1.ailoganlzr.dao.AnalysisRequestRepository;
 import com.proj1.ailoganlzr.enums.AnalysisStatus;
 import com.proj1.ailoganlzr.exception.AIAnalysisException;
@@ -21,6 +22,7 @@ import com.proj1.ailoganlzr.enums.AnalysisType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -34,14 +36,16 @@ public class AnalysisService implements AnalysisRequestIn {
     private final AIAnalysisService aiAnalysisService;
     private final AnalysisCacheService analysisCacheService;
     private final MetricService metricService;
+    private final AnalyzerProperties analyzerProperties;
 
 
-    public AnalysisService(AnalysisRequestRepository requestRepository, AnalysisMapper requestMapper, AIAnalysisService aiAnalysisService, AnalysisCacheService analysisCacheService, MetricService metricService) {
+    public AnalysisService(AnalysisRequestRepository requestRepository, AnalysisMapper requestMapper, AIAnalysisService aiAnalysisService, AnalysisCacheService analysisCacheService, MetricService metricService, AnalyzerProperties analyzerProperties) {
         this.requestRepository = requestRepository;
         this.requestMapper = requestMapper;
         this.aiAnalysisService = aiAnalysisService;
         this.analysisCacheService = analysisCacheService;
         this.metricService = metricService;
+        this.analyzerProperties = analyzerProperties;
 
     }
 
@@ -70,7 +74,7 @@ public class AnalysisService implements AnalysisRequestIn {
 
         log.info("request is saved to database with status PENDING and requestHash: {}", request.getRequestHash());
 
-        long start = System.currentTimeMillis();
+        long start = System.nanoTime();
         AIAnalysisResponse aiResponse;
         boolean isCached;
         try {
@@ -119,8 +123,8 @@ public class AnalysisService implements AnalysisRequestIn {
             throw new AIAnalysisException("AI analysis failed for request with ID: " + request.getId(), e);
         }
 
-        long end = System.currentTimeMillis();
-        long processingTime = end - start;
+        long processingTime =
+                Duration.ofNanos(System.nanoTime() - start).toMillis();
 
         AnalysisResult result = buildAnalysisResult(aiResponse, processingTime, isCached);
         request.addAnalysisResult(result);
@@ -146,7 +150,7 @@ public class AnalysisService implements AnalysisRequestIn {
         result.setSolution(aiResponse.getSolution());
         result.setConfidence(aiResponse.getConfidence());
 
-        result.setAiModel(AiConstants.DEFAULT_MODEL);
+        result.setAiModel(analyzerProperties.getAiModel());
         result.setPromptVersion(PromptVersion.VERSION);
         result.setCached(isCached);
         result.setProcessingTimeMs(processingTime);
@@ -154,11 +158,5 @@ public class AnalysisService implements AnalysisRequestIn {
         return result;
     }
 
-    public void generateTestException() {
 
-        String testValue = null;
-
-        // Deliberate NullPointerException
-        testValue.length();
-    }
 }
