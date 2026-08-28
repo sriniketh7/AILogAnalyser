@@ -8,6 +8,7 @@ import java.time.Duration;
 @Data
 @ConfigurationProperties(prefix = "ai.loganalyzer")
 public class AnalyzerProperties {
+    private String sourceRoot="";
     private Integer maxSnippets = 10;
     private Duration cacheTtlHours = Duration.ofHours(24);
     private String aiModel = "gemini-3.1-flash-lite";
