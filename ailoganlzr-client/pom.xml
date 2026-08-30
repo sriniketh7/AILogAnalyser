@@ -17,9 +17,9 @@
     <packaging>jar</packaging>
 
     <properties>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
-        <client.spring-boot.version>3.4.2</client.spring-boot.version>
+        <maven.compiler.source>19</maven.compiler.source>
+        <maven.compiler.target>19</maven.compiler.target>
+        <client.spring-boot.version>3.5.16</client.spring-boot.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -104,7 +104,7 @@
 
 
                 <configuration>
-                    <release>17</release>
+                    <release>19</release>
                     <annotationProcessorPaths>
 
                         <path>
