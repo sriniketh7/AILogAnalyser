@@ -1,25 +1,24 @@
 package com.proj1.ailoganlzr.service;
 
-
+import com.proj1.ailoganlzr.AILayer.Model.AIAnalysisResponse;
+import com.proj1.ailoganlzr.DTO.CodeSnippet;
+import com.proj1.ailoganlzr.cache.AnalysisCacheService;
 import com.proj1.ailoganlzr.config.AnalyzerProperties;
 import com.proj1.ailoganlzr.metrics.MetricService;
 import io.micrometer.core.instrument.Timer;
-import tools.jackson.databind.ObjectMapper;
-import com.proj1.ailoganlzr.AILayer.Model.AIAnalysisResponse;
-import com.proj1.ailoganlzr.cache.AnalysisCacheService;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import tools.jackson.databind.ObjectMapper;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.time.Duration;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Optional;
 
 @Service
-public class RedisAnalysisCacheService  implements AnalysisCacheService {
-
+public class RedisAnalysisCacheService implements AnalysisCacheService {
 
     private static final String CACHE_PREFIX = "analysis:";
 
@@ -40,11 +39,12 @@ public class RedisAnalysisCacheService  implements AnalysisCacheService {
         this.analyzerProperties = analyzerProperties;
     }
 
-
     @Override
-    public Optional<AIAnalysisResponse> get(String rawLog) {
+    public Optional<AIAnalysisResponse> get(
+            String rawLog,
+            List<CodeSnippet> codeSnippets) {
 
-        String key = buildKey(rawLog);
+        String key = buildKey(rawLog, codeSnippets);
 
         Timer.Sample sample = metricsService.startRedisLookupTimer();
 
@@ -56,23 +56,15 @@ public class RedisAnalysisCacheService  implements AnalysisCacheService {
                 return Optional.empty();
             }
 
-
-
             AIAnalysisResponse response =
                     objectMapper.readValue(
                             cachedValue,
                             AIAnalysisResponse.class
                     );
 
-
             return Optional.of(response);
 
         } catch (Exception e) {
-
-
-
-            e.printStackTrace();
-
             return Optional.empty();
 
         } finally {
@@ -83,16 +75,14 @@ public class RedisAnalysisCacheService  implements AnalysisCacheService {
     @Override
     public void put(
             String rawLog,
+            List<CodeSnippet> codeSnippets,
             AIAnalysisResponse response) {
 
-        String key = buildKey(rawLog);
+        String key = buildKey(rawLog, codeSnippets);
 
         try {
-
             String value =
                     objectMapper.writeValueAsString(response);
-
-
 
             redisTemplate.opsForValue().set(
                     key,
@@ -100,10 +90,7 @@ public class RedisAnalysisCacheService  implements AnalysisCacheService {
                     analyzerProperties.getCacheTtlHours()
             );
 
-
-
         } catch (Exception e) {
-
             throw new RuntimeException(
                     "Failed to cache AI analysis response",
                     e
@@ -112,23 +99,47 @@ public class RedisAnalysisCacheService  implements AnalysisCacheService {
     }
 
     @Override
-    public void evict(String rawLog) {
+    public void evict(
+            String rawLog,
+            List<CodeSnippet> codeSnippets) {
 
-        String key = buildKey(rawLog);
+        String key = buildKey(rawLog, codeSnippets);
         redisTemplate.delete(key);
     }
 
-
-    private String buildKey(String rawLog) {
+    private String buildKey(
+            String rawLog,
+            List<CodeSnippet> codeSnippets) {
 
         try {
-
             MessageDigest digest =
                     MessageDigest.getInstance("SHA-256");
 
+            StringBuilder cacheSource =
+                    new StringBuilder(rawLog);
+
+            if (codeSnippets != null) {
+
+                for (CodeSnippet snippet : codeSnippets) {
+
+                    if (snippet == null) {
+                        continue;
+                    }
+
+                    cacheSource
+                            .append("|")
+                            .append(snippet.getFullyQualifiedClassName())
+                            .append("|")
+                            .append(snippet.getMethodName())
+                            .append("|")
+                            .append(snippet.getSourceCode());
+                }
+            }
+
             byte[] hash =
                     digest.digest(
-                            rawLog.getBytes(StandardCharsets.UTF_8)
+                            cacheSource.toString()
+                                    .getBytes(StandardCharsets.UTF_8)
                     );
 
             return CACHE_PREFIX +

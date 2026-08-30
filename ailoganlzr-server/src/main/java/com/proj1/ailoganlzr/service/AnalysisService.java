@@ -86,7 +86,7 @@ public class AnalysisService implements AnalysisRequestIn {
                     rawLog.hashCode()
             );
 
-            Optional<AIAnalysisResponse> cachedResponse = analysisCacheService.get(rawLog);
+            Optional<AIAnalysisResponse> cachedResponse = analysisCacheService.get(rawLog, codeSnippets);
 
             if (cachedResponse.isPresent()) {
                 metricService.incrementCacheHit();
@@ -110,7 +110,7 @@ public class AnalysisService implements AnalysisRequestIn {
 
                 aiResponse = aiAnalysisService.analyzeStackTrace(rawLog, requestDto.getCodeSnippets());
 
-                analysisCacheService.put(rawLog, aiResponse);
+                analysisCacheService.put(rawLog, codeSnippets, aiResponse);
                 isCached = false;
             }
 
